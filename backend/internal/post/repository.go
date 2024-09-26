@@ -1,0 +1,59 @@
+package post
+
+import (
+	"github.com/dervisgenc/dervisgenc-blog/backend/pkg/models"
+	"gorm.io/gorm"
+)
+
+type PostRepository interface {
+	FindAll() ([]*models.Post, error)
+	FindByID(id uint) (*models.Post, error)
+	Create(post *models.Post) error
+	Update(post *models.Post) error
+	Delete(post_id uint) error
+}
+
+type postRepository struct {
+	db *gorm.DB
+}
+
+func NewPostRepository(db *gorm.DB) PostRepository {
+	return &postRepository{db: db}
+}
+
+func (r *postRepository) Create(post *models.Post) error {
+	if err := r.db.Create(post).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (r *postRepository) Delete(post_id uint) error {
+	if err := r.db.Delete(&models.Post{}, post_id).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (r *postRepository) FindByID(id uint) (*models.Post, error) {
+	var post models.Post
+	if err := r.db.First(&post, id).Error; err != nil {
+		return nil, err
+	}
+	return &post, nil
+}
+
+func (r *postRepository) Update(post *models.Post) error {
+	if err := r.db.Save(post).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (r *postRepository) FindAll() ([]*models.Post, error) {
+	var posts []*models.Post
+	if err := r.db.Find(&posts).Error; err != nil {
+		return nil, err
+	}
+	return posts, nil
+}

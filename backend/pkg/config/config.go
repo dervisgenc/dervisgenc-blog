@@ -52,22 +52,25 @@ func getEnv(key, fallback string) string {
 // Set up logger based on config
 func SetupLogger(cfg *Config) *logrus.Logger {
 	log := logrus.New()
+
 	log.SetFormatter(&logrus.TextFormatter{
 		FullTimestamp: true,
 	})
 
 	if cfg.LogOutput == "file" {
 		file, err := os.OpenFile(cfg.LogFilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+
 		if err != nil {
 			log.Fatalf("Cannot open log file: %v", err)
 		}
+
 		log.SetOutput(file)
+
 	} else {
 		log.SetOutput(os.Stdout)
 	}
 
-	log.SetLevel(logrus.InfoLevel) // Varsayılan olarak DEBUG seviyesi
-	log.SetOutput(os.Stdout)
+	log.SetLevel(logrus.InfoLevel) // Default log level is Debug
 	return log
 }
 
@@ -78,7 +81,7 @@ func getDefaultLogPath() string {
 
 	switch osType {
 	case "linux":
-		logPath = "/var/log/beehub.log"
+		logPath = "/var/log/website.log"
 	case "windows":
 		programData := os.Getenv("PROGRAMDATA")
 		if programData == "" {

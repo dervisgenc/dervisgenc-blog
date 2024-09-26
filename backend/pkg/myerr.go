@@ -1,4 +1,4 @@
-package apperr
+package myerr
 
 import (
 	"errors"

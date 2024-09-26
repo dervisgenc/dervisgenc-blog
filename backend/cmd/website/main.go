@@ -2,7 +2,9 @@ package main
 
 import (
 	"fmt"
+	"os"
 
+	"github.com/dervisgenc/dervisgenc-blog/backend/internal/auth"
 	"github.com/dervisgenc/dervisgenc-blog/backend/pkg/config"
 	"github.com/dervisgenc/dervisgenc-blog/backend/pkg/middleware"
 	"github.com/dervisgenc/dervisgenc-blog/backend/pkg/models"
@@ -19,15 +21,6 @@ func main() {
 
 	logger.Info("App Initializing")
 
-	// Start Gin router
-	r := gin.Default()
-
-	r.Use(cors.Default())
-
-	//Add error handling and logging middleware
-	r.Use(middleware.LoggingMiddleware(logger))
-	r.Use(middleware.ErrorMiddleware())
-
 	// Create data source name
 	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable",
 		cfg.DBHost, cfg.DBUser, cfg.DBPassword, cfg.DBName, cfg.DBPort)
@@ -37,7 +30,7 @@ func main() {
 	if err != nil {
 		logger.Fatal("Database connection failed: ", err)
 	}
-	//TODO: Add migration and models
+
 	err = db.AutoMigrate(models.User{}, models.Post{}, models.Stat{})
 	if err != nil {
 		logger.Fatal("Failed to migrate database models: ", err)
@@ -45,8 +38,40 @@ func main() {
 
 	logger.Info("Database connection and migration successful")
 
+	jwtSecret := []byte(os.Getenv("JWT_SECRET"))
+
+	// Start Gin router
+	r := gin.Default()
+
+	r.Use(cors.Default())
+
+	//Add error handling and logging middleware
+	r.Use(middleware.LoggingMiddleware(logger))
+	r.Use(middleware.ErrorMiddleware())
+	r.Use(middleware.DBMiddleware(db))
+
+	//Define services, repos and handlers
+
+	loginRepo := auth.NewUserRepository(db)
+	loginService := auth.NewLoginService(loginRepo, jwtSecret)
+	loginHandler := auth.NewLoginHandler(loginService)
+
+	//Public endpoints
+	r.POST("admin/login", loginHandler.LoginHandler)
+
+	r.GET("/posts")
+	r.GET("/posts/:id")
+
+	//Admin endpoints (needs authentication)
+	adminRoutes := r.Group("/admin")
+	adminRoutes.Use(middleware.AuthMiddleware(jwtSecret))
+	{
+		adminRoutes.POST("/posts")
+		adminRoutes.PUT("/posts/:id")
+		adminRoutes.DELETE("/posts/:id")
+	}
+
 	r.Run(cfg.Port)
 
 	logger.Infof("App started at port: %s", cfg.Port)
-
 }
