@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/dervisgenc/dervisgenc-blog/backend/internal/auth"
+	"github.com/dervisgenc/dervisgenc-blog/backend/internal/post"
 	"github.com/dervisgenc/dervisgenc-blog/backend/pkg/config"
 	"github.com/dervisgenc/dervisgenc-blog/backend/pkg/middleware"
 	"github.com/dervisgenc/dervisgenc-blog/backend/pkg/models"
@@ -56,19 +57,24 @@ func main() {
 	loginService := auth.NewLoginService(loginRepo, jwtSecret)
 	loginHandler := auth.NewLoginHandler(loginService)
 
+	postRepo := post.NewPostRepository(db)
+	postService := post.NewPostService(postRepo)
+	postHandler := post.NewPostHandler(postService)
+
 	//Public endpoints
 	r.POST("admin/login", loginHandler.LoginHandler)
 
-	r.GET("/posts")
-	r.GET("/posts/:id")
+	r.GET("/posts", postHandler.GetAllPosts)
+	r.GET("/posts/:id", postHandler.GetPostByID)
 
 	//Admin endpoints (needs authentication)
 	adminRoutes := r.Group("/admin")
 	adminRoutes.Use(middleware.AuthMiddleware(jwtSecret))
 	{
-		adminRoutes.POST("/posts")
-		adminRoutes.PUT("/posts/:id")
-		adminRoutes.DELETE("/posts/:id")
+		adminRoutes.POST("/posts", postHandler.CreatePost)
+		adminRoutes.PUT("/posts/:id", postHandler.UpdatePost)
+		adminRoutes.DELETE("/posts/:id", postHandler.DeletePost)
+		adminRoutes.DELETE("/posts/:id/permanent", postHandler.DeletePostPermanently)
 	}
 
 	r.Run(cfg.Port)

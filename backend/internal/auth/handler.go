@@ -9,7 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type LoginLoginRequest struct {
+type LoginRequest struct {
 	Username string `json:"username" binding:"required"`
 	Password string `json:"password" binding:"required"`
 }
@@ -28,13 +28,13 @@ func NewLoginHandler(service *LoginService) *LoginHandler {
 // @Tags Auth
 // @Accept json
 // @Produce json
-// @Param Login body auth.LoginLoginRequest true "Login login credentials"
+// @Param Login body auth.LoginRequest true "Login login credentials"
 // @Success 200 {object} models.TokenResponse "JWT token"
 // @Failure 400 {object} models.ErrorResponse "Invalid request"
 // @Failure 401 {object} models.ErrorResponse "Invalid username or password"
 // @Router /Login/login [post]
 func (h *LoginHandler) LoginHandler(c *gin.Context) {
-	var req LoginLoginRequest
+	var req LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.Error(myerr.WithHTTPStatus(errors.New("invalid request"), http.StatusBadRequest))
 		return
