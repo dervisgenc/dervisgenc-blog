@@ -1,0 +1,430 @@
+definitions:
+  auth.LoginRequest:
+    properties:
+      password:
+        type: string
+      username:
+        type: string
+    required:
+    - password
+    - username
+    type: object
+  models.CountResponse:
+    properties:
+      count:
+        example: 42
+        type: integer
+    type: object
+  models.ErrorResponse:
+    properties:
+      error:
+        type: string
+    type: object
+  models.Post:
+    properties:
+      content:
+        example: This is the content of the post
+        type: string
+      created_at:
+        description: gorm.Model'den
+        example: "2024-10-01T00:00:00Z"
+        type: string
+      deleted_at:
+        description: gorm.Model'den
+        type: string
+      id:
+        description: gorm.Model'den
+        example: 1
+        type: integer
+      image_url:
+        example:
+        - http://example.com/image.jpg
+        items:
+          type: string
+        type: array
+      is_active:
+        example: true
+        type: boolean
+      read_time:
+        example: 5
+        type: integer
+      summary:
+        example: This is a summary
+        type: string
+      title:
+        example:
+        - Sample Post
+        items:
+          type: string
+        type: array
+      updated_at:
+        description: gorm.Model'den
+        example: "2024-10-01T01:00:00Z"
+        type: string
+    type: object
+  models.PostStats:
+    properties:
+      likes:
+        example: 25
+        type: integer
+      post_id:
+        example: 1
+        type: integer
+      shares:
+        example: 10
+        type: integer
+      title:
+        example: Sample Post
+        type: string
+      views:
+        example: 100
+        type: integer
+    type: object
+  models.Stat:
+    properties:
+      created_at:
+        description: gorm.Model'den
+        example: "2024-10-01T00:00:00Z"
+        type: string
+      deleted_at:
+        description: gorm.Model'den
+        type: string
+      id:
+        description: gorm.Model'den
+        example: 1
+        type: integer
+      last_viewed:
+        example: 5
+        type: integer
+      likes:
+        example: 25
+        type: integer
+      post:
+        $ref: '#/definitions/models.Post'
+      post_id:
+        example: 1
+        type: integer
+      shares:
+        example: 10
+        type: integer
+      updated_at:
+        description: gorm.Model'den
+        example: "2024-10-01T01:00:00Z"
+        type: string
+      views:
+        example: 100
+        type: integer
+    type: object
+  models.SuccessResponse:
+    properties:
+      message:
+        type: string
+    type: object
+  models.TokenResponse:
+    properties:
+      token:
+        type: string
+    type: object
+info:
+  contact: {}
+  description: This is the API documentation for Personal Blog Web Site
+  title: Dervis Genc Blog API
+  version: "1.0"
+paths:
+  /Login/login:
+    post:
+      consumes:
+      - application/json
+      description: Authenticates an Login user and returns a JWT token.
+      parameters:
+      - description: Login login credentials
+        in: body
+        name: Login
+        required: true
+        schema:
+          $ref: '#/definitions/auth.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: JWT token
+          schema:
+            $ref: '#/definitions/models.TokenResponse'
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "401":
+          description: Invalid username or password
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: Login login
+      tags:
+      - Auth
+  /posts:
+    get:
+      consumes:
+      - application/json
+      description: Fetch all posts in the system
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Post'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: Get all posts
+      tags:
+      - Posts
+    post:
+      consumes:
+      - application/json
+      description: Create a new post with the provided data
+      parameters:
+      - description: Post Data
+        in: body
+        name: post
+        required: true
+        schema:
+          $ref: '#/definitions/models.Post'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.Post'
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: Create a new post
+      tags:
+      - Posts
+  /posts/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Soft delete a post by its ID
+      parameters:
+      - description: Post ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Post deleted
+          schema:
+            $ref: '#/definitions/models.SuccessResponse'
+        "404":
+          description: Post not found
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: Soft delete a post
+      tags:
+      - Posts
+    get:
+      consumes:
+      - application/json
+      description: Fetch a single post by its ID
+      parameters:
+      - description: Post ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Post'
+        "404":
+          description: Post not found
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: Get a post by ID
+      tags:
+      - Posts
+    put:
+      consumes:
+      - application/json
+      description: Update a post with the given data
+      parameters:
+      - description: Updated Post Data
+        in: body
+        name: post
+        required: true
+        schema:
+          $ref: '#/definitions/models.Post'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Post'
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: Update an existing post
+      tags:
+      - Posts
+  /posts/{id}/permanent:
+    delete:
+      consumes:
+      - application/json
+      description: Permanently delete a post by its ID
+      parameters:
+      - description: Post ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Post deleted permanently
+          schema:
+            $ref: '#/definitions/models.SuccessResponse'
+        "404":
+          description: Post not found
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: Permanently delete a post
+      tags:
+      - Posts
+  /posts/{id}/stats:
+    get:
+      consumes:
+      - application/json
+      description: Fetch statistics such as views, likes, and shares for a given post
+        by its ID
+      parameters:
+      - description: Post ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Stat'
+        "404":
+          description: Post not found
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: Get statistics for a specific post
+      tags:
+      - Stats
+  /posts/count:
+    get:
+      consumes:
+      - application/json
+      description: Fetch the total number of active posts
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'count: total number of posts'
+          schema:
+            $ref: '#/definitions/models.CountResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: Get the total number of posts
+      tags:
+      - Stats
+  /posts/recent/{days}:
+    get:
+      consumes:
+      - application/json
+      description: Fetch posts that were created within the last X days
+      parameters:
+      - description: Number of days
+        in: path
+        name: days
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Post'
+            type: array
+        "400":
+          description: Invalid days parameter
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: Get posts created in the last X days
+      tags:
+      - Stats
+  /posts/stats:
+    get:
+      consumes:
+      - application/json
+      description: Fetch statistics for all posts, including views, likes, and shares
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.PostStats'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: Get statistics for all posts
+      tags:
+      - Stats
+swagger: "2.0"

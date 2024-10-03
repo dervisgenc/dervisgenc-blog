@@ -14,3 +14,8 @@ type SuccessResponse struct {
 type TokenResponse struct {
 	Token string `json:"token"`
 }
+
+// CountResponse represents the count response
+type CountResponse struct {
+	Count int64 `json:"count" example:"42"`
+}

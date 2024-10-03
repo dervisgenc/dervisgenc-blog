@@ -6,14 +6,23 @@ import (
 
 	"github.com/dervisgenc/dervisgenc-blog/backend/internal/auth"
 	"github.com/dervisgenc/dervisgenc-blog/backend/internal/post"
+	"github.com/dervisgenc/dervisgenc-blog/backend/internal/stat"
 	"github.com/dervisgenc/dervisgenc-blog/backend/pkg/config"
 	"github.com/dervisgenc/dervisgenc-blog/backend/pkg/middleware"
 	"github.com/dervisgenc/dervisgenc-blog/backend/pkg/models"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+
+	_ "github.com/dervisgenc/dervisgenc-blog/backend/docs"
 )
+
+// @title Dervis Genc Blog API
+// @version 1.0
+// @description This is the API documentation for Personal Blog Web Site
 
 func main() {
 
@@ -61,6 +70,10 @@ func main() {
 	postService := post.NewPostService(postRepo)
 	postHandler := post.NewPostHandler(postService)
 
+	statRepo := stat.NewStatRepository(db)
+	statService := stat.NewStatService(statRepo)
+	statHandler := stat.NewStatHandler(statService)
+
 	//Public endpoints
 	r.POST("admin/login", loginHandler.LoginHandler)
 
@@ -75,6 +88,16 @@ func main() {
 		adminRoutes.PUT("/posts/:id", postHandler.UpdatePost)
 		adminRoutes.DELETE("/posts/:id", postHandler.DeletePost)
 		adminRoutes.DELETE("/posts/:id/permanent", postHandler.DeletePostPermanently)
+		adminRoutes.GET("/posts/stats", statHandler.GetAllPostsStats)
+		adminRoutes.GET("/posts/stats/:id", statHandler.GetPostStats)
+		adminRoutes.GET("/posts/count", statHandler.CountPosts)
+	}
+
+	//Enable swagger if SWAGGER_ENABLED is set to true
+	if os.Getenv("SWAGGER_ENABLED") == "true" {
+		r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+	} else {
+		fmt.Println("Swagger is disabled")
 	}
 
 	r.Run(cfg.Port)
