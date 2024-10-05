@@ -1,68 +1,267 @@
-:root {
-  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
+/* global.css */
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
-
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
+/* Reset and base styles */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
 
 body {
-  margin: 0;
-  display: flex;
-  place-items: center;
-  min-width: 320px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  line-height: 1.5;
+}
+
+/* Dark mode styles */
+.dark-mode {
+  background-color: #111827;
+  color: #f3f4f6;
+}
+
+.light-mode {
+  background-color: #f3f4f6;
+  color: #111827;
+}
+
+/* Layout */
+.min-h-screen {
   min-height: 100vh;
 }
 
+.container {
+  width: 100%;
+  max-width: 1280px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+/* Header */
+header {
+  padding: 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #374151;
+}
+
 h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
+  font-size: 1.5rem;
+  font-weight: bold;
 }
 
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
+nav {
+  display: flex;
+  align-items: center;
+}
+
+nav a,
+nav button {
+  margin-left: 1rem;
+  color: inherit;
+  text-decoration: none;
+}
+
+nav a:hover,
+nav button:hover {
+  color: #a78bfa;
+}
+
+.theme-toggle {
+  padding: 0.5rem;
+  border-radius: 9999px;
+  background-color: #1f2937;
+  color: #e5e7eb;
+  border: none;
   cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
+  transition: background-color 0.3s;
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
+.theme-toggle:hover {
+  background-color: #374151;
+}
+
+/* Main content */
+main {
+  padding-top: 2rem;
+  padding-bottom: 2rem;
+}
+
+/* Search box */
+.search-container {
+  position: relative;
+  max-width: 56rem;
+  margin-left: auto;
+  margin-right: auto;
+  margin-bottom: 2rem;
+}
+
+.search-box {
+  width: 100%;
+  height: 2.5rem;
+  padding: 0 1rem;
+  border-radius: 0.375rem;
+  border: 1px solid;
+  font-size: 0.875rem;
+  transition: all 0.3s;
+}
+
+.dark-mode .search-box {
+  background-color: rgba(31, 41, 55, 0.3);
+  /* Daha fazla saydamlık */
+  color: #d1d5db;
+  border-color: #4b5563;
+}
+
+.light-mode .search-box {
+  background-color: rgba(255, 255, 255, 0.3);
+  /* Daha fazla saydamlık */
+  color: #1f2937;
+  border-color: #d1d5db;
+}
+
+/* Placeholder color changes */
+.placeholder-bright::placeholder {
+  color: #a78bfa;
+  /* Parlak mor renk (dark mode) */
+}
+
+.placeholder-dark::placeholder {
+  color: #4b5563;
+  /* Koyu gri renk (light mode) */
+}
+
+.search-box:focus {
+
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(167, 139, 250, 0.5);
+}
+
+/* Blog post grid */
+.blog-grid {
+  display: grid;
+  grid-template-columns: repeat(1, 1fr);
+  gap: 2rem;
+}
+
+@media (min-width: 768px) {
+  .blog-grid {
+    grid-template-columns: repeat(2, 1fr);
   }
-  a:hover {
-    color: #747bff;
+}
+
+@media (min-width: 1024px) {
+  .blog-grid {
+    grid-template-columns: repeat(3, 1fr);
   }
-  button {
-    background-color: #f9f9f9;
-  }
+}
+
+/* Blog post card */
+.blog-card {
+  border-radius: 0.5rem;
+  overflow: hidden;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  transition: all 0.3s;
+}
+
+.dark-mode .blog-card {
+  background-color: #1f2937;
+}
+
+.light-mode .blog-card {
+  background-color: #ffffff;
+}
+
+.blog-card:hover {
+  box-shadow: 0 0 15px rgba(168, 85, 247, 0.5), 0 0 15px rgba(168, 85, 247, 0.5);
+}
+
+.blog-card img {
+  width: 100%;
+  height: 12rem;
+  object-fit: cover;
+}
+
+.blog-card-content {
+  padding: 1.5rem;
+}
+
+.blog-card h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: #a78bfa;
+}
+
+.dark-mode .blog-card p {
+  color: #d1d5db;
+}
+
+.light-mode .blog-card p {
+  color: #4b5563;
+}
+
+.blog-card-footer {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.875rem;
+  margin-top: 1rem;
+}
+
+.dark-mode .blog-card-footer {
+  color: #9ca3af;
+}
+
+.light-mode .blog-card-footer {
+  color: #6b7280;
+}
+
+/* Matrix rain effect */
+canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+
+/* Dynamic text effect */
+.dynamic-text span {
+  transition: color 2s;
+}
+
+/* Not found message styles */
+.text-red-500 {
+  color: #f87171;
+  /* Kırmızı renk (tailwind color palette) */
+}
+
+.flex-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.text-center {
+  text-align: center;
+  width: 100%;
+}
+
+.w-full {
+  width: 100%;
+}
+
+.mb-4 {
+  margin-bottom: 1rem;
+  /* Bottom margin */
+}
+
+.mt-12 {
+  margin-top: 3rem;
+  /* Top margin */
 }
