@@ -1,4 +1,7 @@
 /* global.css */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 /* Reset and base styles */
 * {
@@ -188,9 +191,9 @@ main {
 }
 
 .blog-card h2 {
+  margin-bottom: 8px;
   font-size: 1.25rem;
   font-weight: 600;
-  margin-bottom: 0.5rem;
   color: #a78bfa;
 }
 

@@ -33,6 +33,7 @@ const blogPosts: BlogPost[] = [
     },
 ];
 
+// MatrixRain component that creates a matrix rain effect on a canvas
 const MatrixRain: React.FC<{ width: number; height: number; isDarkMode: boolean }> = ({ width, height, isDarkMode }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -76,6 +77,7 @@ const MatrixRain: React.FC<{ width: number; height: number; isDarkMode: boolean 
     return <canvas ref={canvasRef} className="absolute top-0 left-0 w-full h-full pointer-events-none" />;
 };
 
+// DynamicText component that cycles through colors for each character in the text
 const DynamicText: React.FC<{ text: string }> = ({ text }) => {
     const [colors, setColors] = useState(['#8B5CF6', '#EC4899', '#EF4444']);
 
@@ -108,6 +110,7 @@ const HomePage: React.FC = () => {
     const [searchQuery, setSearchQuery] = useState(''); // Search query state
     const searchBoxRef = useRef<HTMLDivElement>(null);
 
+    // Update the size of the search box and set up a resize event listener
     useEffect(() => {
         const updateSize = () => {
             if (searchBoxRef.current) {
@@ -161,16 +164,16 @@ const HomePage: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Eğer sonuç bulunursa */}
                 {filteredPosts.length > 0 ? (
                     <div className="blog-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                         {filteredPosts.map((post, index) => (
-                            <div key={index} className="blog-card bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
-                                <img src={post.image} alt={post.title} className="w-full h-48 object-cover" />
-                                <div className="mt-4">
+                            <div key={index} className="blog-card bg-white dark:bg-gray-800 rounded-lg shadow-md">
+                                <img src={post.image} alt={post.title} className="w-full h-48 object-cover rounded-t-lg" />
+
+                                <div className="px-3 py-4 space-y-2">
                                     <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100">{post.title}</h2>
-                                    <p className="text-gray-600 dark:text-gray-400">{post.description}</p>
-                                    <div className="flex justify-between text-sm text-gray-500 dark:text-gray-400 mt-4">
+                                    <p className="text-gray-600 dark:text-gray-400 mb-4">{post.description}</p>
+                                    <div className="flex justify-between items-center text-sm text-gray-500 dark:text-gray-400">
                                         <span>{post.date}</span>
                                         <span>{post.readTime}</span>
                                     </div>
@@ -179,7 +182,6 @@ const HomePage: React.FC = () => {
                         ))}
                     </div>
                 ) : (
-                    /* Eğer sonuç bulunmazsa */
                     <div className="flex flex-col items-center justify-center mt-12">
                         <AlertTriangle size={72} className="text-red-500 mb-4" />
                         <p className="text-xl text-red-500 text-center">
@@ -188,7 +190,6 @@ const HomePage: React.FC = () => {
                     </div>
                 )}
             </main>
-
         </div>
     );
 };
