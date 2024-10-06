@@ -1,0 +1,82 @@
+/* quill-custom.css */
+
+.quill-editor .ql-toolbar {
+    background-color: #2d3748;
+    /* Corresponds to bg-gray-800 in Tailwind */
+    border: 1px solid #4a5568;
+    /* Corresponds to border-gray-600 in Tailwind */
+}
+
+.quill-editor .ql-toolbar .ql-stroke {
+    stroke: #cbd5e0;
+    /* Corresponds to text-gray-400 in Tailwind */
+}
+
+.quill-editor .ql-toolbar .ql-fill {
+    fill: #cbd5e0;
+}
+
+.quill-editor .ql-toolbar button svg {
+    fill: #cbd5e0;
+    stroke: #cbd5e0;
+}
+
+.quill-editor .ql-container {
+    background-color: #1a202c;
+    /* Corresponds to bg-gray-900 in Tailwind */
+    color: #edf2f7;
+    /* Corresponds to text-gray-100 in Tailwind */
+    border: 1px solid #4a5568;
+}
+
+.quill-editor .ql-editor {
+    min-height: 200px;
+    color: #edf2f7;
+}
+
+.quill-editor .ql-editor a {
+    color: #63b3ed;
+    /* Corresponds to text-blue-400 in Tailwind */
+}
+
+.quill-editor .ql-editor h1,
+.quill-editor .ql-editor h2,
+.quill-editor .ql-editor h3,
+.quill-editor .ql-editor h4,
+.quill-editor .ql-editor h5,
+.quill-editor .ql-editor h6 {
+    color: #edf2f7;
+}
+
+.quill-editor .ql-toolbar .ql-picker-label {
+    color: #cbd5e0;
+    /* Corresponds to text-gray-400 in Tailwind */
+}
+
+/* Sets the color of the font picker icon */
+.quill-editor .ql-toolbar .ql-picker-label svg {
+    fill: #cbd5e0;
+    stroke: #cbd5e0;
+}
+
+/* Dropdown menu for font options */
+.quill-editor .ql-toolbar .ql-picker-options {
+    background-color: #2d3748;
+    /* Corresponds to bg-gray-800 in Tailwind */
+    border: 1px solid #4a5568;
+    /* Corresponds to border-gray-600 in Tailwind */
+}
+
+/* Text color of font options */
+.quill-editor .ql-toolbar .ql-picker-options .ql-picker-item {
+    color: #cbd5e0;
+}
+
+/* When hovering over and selecting font options */
+.quill-editor .ql-toolbar .ql-picker-options .ql-picker-item:hover,
+.quill-editor .ql-toolbar .ql-picker-options .ql-picker-item.ql-selected {
+    color: #edf2f7;
+    /* Corresponds to text-gray-100 in Tailwind */
+    background-color: #4a5568;
+    /* Corresponds to bg-gray-600 in Tailwind */
+}
