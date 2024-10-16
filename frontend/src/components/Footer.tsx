@@ -1,5 +1,9 @@
 import { Info } from 'lucide-react'
 
+interface FooterProps {
+    isDarkMode: boolean;
+}
+
 export default function Footer() {
     return (
         <footer className="bg-gray-900 text-gray-400 py-2 border-t border-gray-800 w-full">

@@ -12,7 +12,7 @@ export default function Layout({ children, isDarkMode, toggleDarkMode }: LayoutP
         <div className={`min-h-screen flex flex-col ${isDarkMode ? 'dark-mode' : 'light-mode'}`}>
             <Header isDarkMode={isDarkMode} toggleDarkMode={toggleDarkMode} />
             <main className="flex-grow">{children}</main>
-            <Footer />
+            <Footer isDarkMode={isDarkMode} />
         </div>
     );
 }

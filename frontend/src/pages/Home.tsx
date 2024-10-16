@@ -1,8 +1,9 @@
+
 import React, { useState } from 'react';
 import { AlertTriangle } from 'lucide-react';
 import SearchBox from '../components/SearchBox';
 import BlogCard from '../components/BlogCard';
-import NextButton from '../components/NextButton';  // Assuming your NextButton is in components folder
+import NextButton from '../components/NextButton';
 import PrevButton from '../components/PrevButon';
 
 interface BlogPost {
@@ -16,11 +17,10 @@ interface BlogPost {
 interface HomePageProps {
     isDarkMode: boolean;
 }
-
 const blogPosts: BlogPost[] = [
     {
         title: 'Hacking Techniques: A Deep Dive',
-        description: 'Explore the latest hacking techniques and how to protect against them in this comprehensive guide.',
+        description: 'Explore the lates hacking techniques and how to protect against them in this comprehensive guide.',
         date: 'May 15, 2023',
         readTime: '5 min read',
         image: `./vite.svg`,
@@ -41,7 +41,7 @@ const blogPosts: BlogPost[] = [
     },
     {
         title: 'Hacking Techniques: A Deep Dive',
-        description: 'Explore the latest hacking techniques and how to protect against them in this comprehensive guide.',
+        description: 'Explore the lates hacking techniques and how to protect against them in this comprehensive guide.',
         date: 'May 15, 2023',
         readTime: '5 min read',
         image: `./vite.svg`,
@@ -55,6 +55,13 @@ const blogPosts: BlogPost[] = [
     },
     {
         title: 'AI in Cybersecurity',
+        description: 'Discover how artificial intelligence is revolutionizing the cybersecurity landscape.',
+        date: 'May 25, 2023',
+        readTime: '6 min read',
+        image: `./vite.svg`,
+    },
+    {
+        title: 'test',
         description: 'Discover how artificial intelligence is revolutionizing the cybersecurity landscape.',
         date: 'May 25, 2023',
         readTime: '6 min read',
@@ -66,21 +73,18 @@ const blogPosts: BlogPost[] = [
 
 const HomePage: React.FC<HomePageProps> = ({ isDarkMode }) => {
     const [searchQuery, setSearchQuery] = useState('');
-    const [currentPage, setCurrentPage] = useState(1);  // Sayfa numarası state
-    const postsPerPage = 6;  // Her sayfada gösterilecek blog sayısı
+    const [currentPage, setCurrentPage] = useState(1);
+    const postsPerPage = 6;
 
-    // Blog postları filtreleme
     const filteredPosts = blogPosts.filter((post) =>
         post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         post.description.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
-    // Sayfalama için mevcut sayfada gösterilecek blogları hesaplama
     const indexOfLastPost = currentPage * postsPerPage;
     const indexOfFirstPost = indexOfLastPost - postsPerPage;
     const currentPosts = filteredPosts.slice(indexOfFirstPost, indexOfLastPost);
 
-    // Sayfa değiştirme fonksiyonları
     const nextPage = () => {
         if (currentPage < Math.ceil(filteredPosts.length / postsPerPage)) {
             setCurrentPage(currentPage + 1);
@@ -94,52 +98,51 @@ const HomePage: React.FC<HomePageProps> = ({ isDarkMode }) => {
     };
 
     return (
-        <main className="container">
+        <main className="px-4 md:px-8 lg:px-16">
             <SearchBox isDarkMode={isDarkMode} searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
-            {filteredPosts.length > 0 ? (
-                <>
-                    <div className="blog-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                        {currentPosts.map((post, index) => (
-                            <BlogCard
-                                key={index}
-                                title={post.title}
-                                description={post.description}
-                                date={post.date}
-                                readTime={post.readTime}
-                                image={post.image}
-                            />
-                        ))}
-                    </div>
-
-                    {/* Sayfalama Düğmeleri */}
-                    {filteredPosts.length > postsPerPage && (
-                        <div className="flex justify-between items-center mt-12">
-                            <PrevButton
-                                onClick={prevPage}
-                                disabled={currentPage === 1}  // Son sayfada ileri gitme devre dışı
-                            />
-
-                            <span className="text-gray-500 text-sm mx-4">
-                                Page {currentPage} of {Math.ceil(filteredPosts.length / postsPerPage)}
-                            </span>
-
-                            {/* NextButton Component */}
-                            <NextButton
-                                onClick={nextPage}
-                                disabled={currentPage === Math.ceil(filteredPosts.length / postsPerPage)}  // Son sayfada ileri gitme devre dışı
-                            />
+            <div className="max-w-7xl mx-auto">
+                {filteredPosts.length > 0 ? (
+                    <>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+                            {currentPosts.map((post, index) => (
+                                <BlogCard
+                                    key={index}
+                                    title={post.title}
+                                    description={post.description}
+                                    date={post.date}
+                                    readTime={post.readTime}
+                                    image={post.image}
+                                />
+                            ))}
                         </div>
-                    )}
 
-                </>
-            ) : (
-                <div className="flex flex-col items-center justify-center mt-12">
-                    <AlertTriangle size={72} className="text-red-500 mb-4" />
-                    <p className="text-xl text-red-500 text-center">
-                        No articles found matching your search.
-                    </p>
-                </div>
-            )}
+                        {filteredPosts.length > postsPerPage && (
+                            <div className="flex justify-between items-center mt-12">
+                                <PrevButton
+                                    onClick={prevPage}
+                                    disabled={currentPage === 1}
+                                />
+
+                                <span className="text-gray-500 text-sm mx-4">
+                                    Sayfa {currentPage} / {Math.ceil(filteredPosts.length / postsPerPage)}
+                                </span>
+
+                                <NextButton
+                                    onClick={nextPage}
+                                    disabled={currentPage === Math.ceil(filteredPosts.length / postsPerPage)}
+                                />
+                            </div>
+                        )}
+                    </>
+                ) : (
+                    <div className="flex flex-col justify-center mt-12 w-full">
+                        <AlertTriangle size={72} className="text-red-500 mb-4 mx-auto" />
+                        <p className="text-xl text-red-500 text-center">
+                            Aramanızla eşleşen makale bulunamadı.
+                        </p>
+                    </div>
+                )}
+            </div>
         </main>
     );
 };

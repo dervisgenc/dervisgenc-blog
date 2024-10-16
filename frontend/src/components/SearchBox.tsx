@@ -70,13 +70,13 @@ const SearchBox: React.FC<SearchBoxProps> = ({ isDarkMode, searchQuery, setSearc
     }, []);
 
     return (
-        <div className="search-container" ref={searchBoxRef}>
+        <div className="search-container max-w-3xl mx-auto" ref={searchBoxRef}>
             <div className="relative h-10">
                 <MatrixRain width={searchBoxSize.width} height={searchBoxSize.height} isDarkMode={isDarkMode} />
                 <input
                     type="text"
                     placeholder="Search for cybersecurity articles..."
-                    className={`search-box ${isDarkMode ? 'placeholder-bright' : 'placeholder-dark'}`}
+                    className={`search-box w-full ${isDarkMode ? 'placeholder-bright' : 'placeholder-dark'}`}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                 />

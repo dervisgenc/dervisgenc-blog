@@ -66,7 +66,7 @@ export default function PostEditPage() {
 
     const handleSave = () => {
         console.log('Updated post:', editingPost);
-        navigate('/');  // Admin sayfasına dön
+        navigate('/sentinel');  // Admin sayfasına dön
     };
 
     return (
