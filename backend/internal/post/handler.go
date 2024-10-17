@@ -3,6 +3,7 @@ package post
 import (
 	"errors"
 	"net/http"
+	"strconv"
 
 	myerr "github.com/dervisgenc/dervisgenc-blog/backend/pkg"
 	"github.com/dervisgenc/dervisgenc-blog/backend/pkg/models"
@@ -47,8 +48,13 @@ func (h *PostHandler) GetAllPosts(c *gin.Context) {
 // @Failure 500 {object} models.ErrorResponse "Internal Server Error"
 // @Router /posts/{id} [get]
 func (h *PostHandler) GetPostByID(c *gin.Context) {
-	var id uint = c.GetUint("id")
-	post, err := h.service.GetPostByID(id)
+	idParam := c.Param("id")
+	id, err := strconv.ParseUint(idParam, 10, 32)
+	if err != nil {
+		c.Error(myerr.WithHTTPStatus(err, http.StatusBadRequest))
+		return
+	}
+	post, err := h.service.GetPostByID(uint(id))
 	if err != nil {
 		c.Error(myerr.WithHTTPStatus(err, http.StatusInternalServerError))
 		return

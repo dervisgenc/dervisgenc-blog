@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Eye, EyeOff, Lock, User } from 'lucide-react'
+import axios from 'axios'; // Axios'u import ettik
 import "../login.css"
 
 const MatrixRain = () => {
@@ -52,11 +53,22 @@ export default function LoginPage() {
     const [username, setUsername] = useState('')
     const [password, setPassword] = useState('')
     const [showPassword, setShowPassword] = useState(false)
+    const [error, setError] = useState<string | null>(null);
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
-        // Handle login logic here
-        console.log('Login attempted with:', { username, password })
+
+        try {
+            const response = await axios.post('http://localhost:8080/admin/login', {
+                username,
+                password
+            });
+            console.log('Login successful:', response.data);
+            // Burada token'i alabilir ve saklayabilirsiniz (örneğin localStorage'a yazabilirsiniz)
+            // localStorage.setItem('token', response.data.token);
+        } catch (err) {
+            setError('Login failed: Invalid username or password');
+        }
     }
 
     return (
@@ -65,6 +77,7 @@ export default function LoginPage() {
             <div className="absolute inset-0 bg-gradient-to-br from-purple-900 via-gray-900 to-blue-900 opacity-50"></div>
             <div className="z-10 w-full max-w-md p-8 bg-gray-800 bg-opacity-80 rounded-lg border border-purple-500 shadow-lg shadow-purple-500/20">
                 <h1 className="text-4xl font-bold mb-6 text-center glitch" data-text="CyberTron">CyberTron</h1>
+                {error && <p className="text-red-500 text-center">{error}</p>}
                 <form onSubmit={handleSubmit} className="space-y-6">
                     <div className="relative">
                         <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-purple-400" size={20} />
