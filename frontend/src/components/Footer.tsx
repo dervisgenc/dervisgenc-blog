@@ -10,7 +10,7 @@ export default function Footer() {
             <div className="flex justify-between items-center px-6">
                 {/* Left: CyberNexus */}
                 <div className="text-purple-400 font-semibold">
-                    CyberNexus
+                    CyberTron
                 </div>
 
                 {/* Center: © 2024 Derviş Genç */}

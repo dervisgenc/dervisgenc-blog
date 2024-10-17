@@ -110,7 +110,7 @@ export default function AdminPage({ isDarkMode }: AdminPageProps) {
                 }`}
         >
             <h1 className="text-4xl font-bold mb-8 text-center bg-clip-text text-transparent bg-gradient-to-r from-purple-400 via-pink-500 to-red-500 py-2">
-                CyberNexus Admin
+                CyberTron Admin
             </h1>
             <div className="max-w-7xl mx-auto">
                 <button

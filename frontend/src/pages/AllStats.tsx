@@ -76,7 +76,7 @@ export default function AllPostsStats() {
     return (
         <div className="min-h-screen bg-gray-900 text-gray-300 p-8">
             <h1 className="text-4xl font-bold mb-8 text-center bg-clip-text text-transparent bg-gradient-to-r from-purple-400 via-pink-500 to-red-500 py-2">
-                CyberNexus Blog Statistics
+                CyberTron Blog Statistics
             </h1>
 
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">

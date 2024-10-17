@@ -64,7 +64,7 @@ export default function LoginPage() {
             <MatrixRain />
             <div className="absolute inset-0 bg-gradient-to-br from-purple-900 via-gray-900 to-blue-900 opacity-50"></div>
             <div className="z-10 w-full max-w-md p-8 bg-gray-800 bg-opacity-80 rounded-lg border border-purple-500 shadow-lg shadow-purple-500/20">
-                <h1 className="text-4xl font-bold mb-6 text-center glitch" data-text="CyberNexus">CyberNexus</h1>
+                <h1 className="text-4xl font-bold mb-6 text-center glitch" data-text="CyberTron">CyberTron</h1>
                 <form onSubmit={handleSubmit} className="space-y-6">
                     <div className="relative">
                         <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-purple-400" size={20} />
