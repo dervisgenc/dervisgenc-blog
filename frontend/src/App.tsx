@@ -8,6 +8,7 @@ import Layout from './Layout';
 import { useState } from 'react';
 import PostStats from './pages/PostStats';
 import AllPostsStats from './pages/AllStats';
+import PostPage from './pages/Post';
 
 function AppContent() {
   const [isDarkMode, setIsDarkMode] = useState(true);
@@ -17,6 +18,7 @@ function AppContent() {
       <Layout isDarkMode={isDarkMode} toggleDarkMode={() => setIsDarkMode(!isDarkMode)}>
         <Routes>
           <Route path="/" element={<HomePage isDarkMode={isDarkMode} />} />
+          <Route path="/post/:id" element={<PostPage />} />
           <Route path="/sentinel" element={<AdminPage isDarkMode={isDarkMode} />} />
           <Route path="/sentinel/login" element={<LoginPage />} />
           <Route path="/edit/:id" element={<PostEditPage />} />

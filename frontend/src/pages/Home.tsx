@@ -7,6 +7,7 @@ import NextButton from '../components/NextButton';
 import PrevButton from '../components/PrevButon';
 
 interface BlogPost {
+    id: number;
     title: string;
     description: string;
     date: string;
@@ -19,6 +20,7 @@ interface HomePageProps {
 }
 const blogPosts: BlogPost[] = [
     {
+        id: 1,
         title: 'Hacking Techniques: A Deep Dive',
         description: 'Explore the lates hacking techniques and how to protect against them in this comprehensive guide.',
         date: 'May 15, 2023',
@@ -26,6 +28,7 @@ const blogPosts: BlogPost[] = [
         image: `./vite.svg`,
     },
     {
+        id: 2,
         title: 'Cybersecurity Trends 2023',
         description: 'Stay ahead of the curve with our analysis of the top cybersecurity trends for 2023.',
         date: 'May 20, 2023',
@@ -33,6 +36,7 @@ const blogPosts: BlogPost[] = [
         image: `./vite.svg`,
     },
     {
+        id: 3,
         title: 'AI in Cybersecurity',
         description: 'Discover how artificial intelligence is revolutionizing the cybersecurity landscape.',
         date: 'May 25, 2023',
@@ -40,6 +44,7 @@ const blogPosts: BlogPost[] = [
         image: `./vite.svg`,
     },
     {
+        id: 4,
         title: 'Hacking Techniques: A Deep Dive',
         description: 'Explore the lates hacking techniques and how to protect against them in this comprehensive guide.',
         date: 'May 15, 2023',
@@ -47,6 +52,7 @@ const blogPosts: BlogPost[] = [
         image: `./vite.svg`,
     },
     {
+        id: 5,
         title: 'Cybersecurity Trends 2023',
         description: 'Stay ahead of the curve with our analysis of the top cybersecurity trends for 2023.',
         date: 'May 20, 2023',
@@ -54,6 +60,7 @@ const blogPosts: BlogPost[] = [
         image: `./vite.svg`,
     },
     {
+        id: 6,
         title: 'AI in Cybersecurity',
         description: 'Discover how artificial intelligence is revolutionizing the cybersecurity landscape.',
         date: 'May 25, 2023',
@@ -61,6 +68,7 @@ const blogPosts: BlogPost[] = [
         image: `./vite.svg`,
     },
     {
+        id: 7,
         title: 'test',
         description: 'Discover how artificial intelligence is revolutionizing the cybersecurity landscape.',
         date: 'May 25, 2023',
@@ -106,6 +114,7 @@ const HomePage: React.FC<HomePageProps> = ({ isDarkMode }) => {
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
                             {currentPosts.map((post, index) => (
                                 <BlogCard
+                                    postId={post.id}
                                     key={index}
                                     title={post.title}
                                     description={post.description}
