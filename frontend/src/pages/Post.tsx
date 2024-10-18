@@ -1,7 +1,8 @@
+import DOMPurify from 'dompurify';
 import { useParams } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ThumbsUp, Share2, AlertTriangle } from 'lucide-react'; // Added AlertTriangle icon
+import { ThumbsUp, Share2, AlertTriangle } from 'lucide-react';
 import { useState, useEffect } from "react";
 import axios from 'axios';
 
@@ -9,13 +10,13 @@ interface Post {
     id: number;
     title: string;
     content: string;
-    imageUrl: string;
+    image_url: string;
     likes: number;
     shares: number;
 }
 
 export default function PostPage() {
-    const { id } = useParams(); // Get post ID from URL params
+    const { id } = useParams();
     const [post, setPost] = useState<Post | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [likeCount, setLikeCount] = useState(0);
@@ -23,7 +24,6 @@ export default function PostPage() {
     const [isLiked, setIsLiked] = useState(false);
     const [isShared, setIsShared] = useState(false);
 
-    // Fetch post data from the backend
     useEffect(() => {
         const fetchPost = async () => {
             try {
@@ -37,9 +37,8 @@ export default function PostPage() {
         };
 
         fetchPost();
-    }, [id]); // Fetch the post when the component mounts or when the ID changes
+    }, [id]);
 
-    // Eğer bir hata varsa daha görsel bir hata ekranı gösterelim
     if (error) {
         return (
             <div className="min-h-screen bg-gray-900 text-gray-100 p-4 flex flex-col items-center justify-center">
@@ -49,16 +48,16 @@ export default function PostPage() {
                 <Button
                     variant="outline"
                     className="bg-gray-800 text-gray-100 border-gray-700 hover:bg-gray-700 transition-all duration-300 ease-in-out"
-                    onClick={() => window.location.href = '/'} // Go back to home
+                    onClick={() => window.location.href = '/'}
                 >
-                    Return the Home Page
+                    Return to Home Page
                 </Button>
             </div>
         );
     }
 
     if (!post) {
-        return <p>Loading...</p>; // Show loading message while fetching data
+        return <p>Loading...</p>;
     }
 
     const handleLike = () => {
@@ -76,15 +75,20 @@ export default function PostPage() {
         setTimeout(() => setIsShared(false), 2000);
     };
 
+    // Sanitize the HTML content from the post
+    const sanitizedContent = DOMPurify.sanitize(post.content);
+    const encodedImageUrl = encodeURI(post.image_url);
+
     return (
         <div className="min-h-screen bg-gray-900 text-gray-100 p-4 md:p-8">
             <Card className="max-w-4xl mx-auto bg-gray-800 border-gray-700 overflow-hidden">
                 <div className="relative h-64 md:h-96">
                     <img
-                        src={post.imageUrl}
+                        src={encodedImageUrl}
                         alt={post.title}
                         className="absolute inset-0 w-full h-full object-cover"
                     />
+
                     <div className="absolute inset-0 bg-gradient-to-t from-gray-900 to-transparent" />
                     <h1 className="absolute bottom-4 left-4 right-4 text-2xl md:text-4xl font-bold text-white">
                         {post.title}
@@ -92,11 +96,10 @@ export default function PostPage() {
                 </div>
                 <CardContent className="p-6">
                     <div className="prose prose-invert max-w-none">
-                        {post.content.split('\n\n').map((paragraph, index) => (
-                            <p key={index} className="text-gray-300 leading-relaxed mb-4">
-                                {paragraph}
-                            </p>
-                        ))}
+                        <div
+                            className="text-gray-300 leading-relaxed mb-4"
+                            dangerouslySetInnerHTML={{ __html: sanitizedContent }}
+                        />
                     </div>
                 </CardContent>
             </Card>

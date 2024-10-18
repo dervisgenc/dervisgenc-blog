@@ -30,14 +30,14 @@ func LoadConfig() *Config {
 	}
 
 	return &Config{
-		Port:        getEnv("PORT", "8080"),
+		Port:        getEnv("PORT", ":8080"),
 		LogOutput:   getEnv("LOG_OUTPUT", "file"), //default olarak file seçilmiştir
 		LogFilePath: getEnv("LOG_FILE_PATH", getDefaultLogPath()),
 		DBHost:      getEnv("DB_HOST", "localhost"),
-		DBUser:      getEnv("DB_USER", ""),
-		DBPassword:  getEnv("DB_PASSWORD", ""),
-		DBName:      getEnv("DB_NAME", "beehub"),
-		DBPort:      getEnv("DB_PORT", "5432"),
+		DBUser:      getEnv("DB_USER", "dervis"),
+		DBPassword:  getEnv("DB_PASSWORD", "12461246"),
+		DBName:      getEnv("DB_NAME", "website"),
+		DBPort:      getEnv("DB_PORT", "5433"),
 	}
 }
 

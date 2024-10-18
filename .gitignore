@@ -49,3 +49,6 @@ dist-ssr
 *.sln
 *.sw?
 
+backend/uploads/
+main
+backend/main

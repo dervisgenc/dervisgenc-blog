@@ -2,7 +2,9 @@ package post
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
+	"path/filepath"
 	"strconv"
 
 	myerr "github.com/dervisgenc/dervisgenc-blog/backend/pkg"
@@ -64,26 +66,55 @@ func (h *PostHandler) GetPostByID(c *gin.Context) {
 
 // CreatePost godoc
 // @Summary Create a new post
-// @Description Create a new post with the provided data
+// @Description Create a new post with the provided data and an optional image
 // @Tags Posts
-// @Accept json
+// @Accept multipart/form-data
 // @Produce json
-// @Param post body models.Post true "Post Data"
+// @Param title formData string true "Post Title"
+// @Param content formData string true "Post Content"
+// @Param description formData string false "Post Description"
+// @Param readTime formData string false "Estimated Read Time"
+// @Param image formData file false "Cover Image"
 // @Success 201 {object} models.Post
 // @Failure 400 {object} models.ErrorResponse "Invalid request"
 // @Failure 500 {object} models.ErrorResponse "Internal Server Error"
 // @Router /posts [post]
 func (h *PostHandler) CreatePost(c *gin.Context) {
 	var post models.Post
-	if err := c.ShouldBindJSON(&post); err != nil {
-		c.Error(myerr.WithHTTPStatus(errors.New("invalid request"), http.StatusBadRequest))
+
+	// Form verilerini tek tek çekiyoruz
+	post.Title = c.PostForm("title")
+	post.Summary = c.PostForm("description")
+	post.Content = c.PostForm("content")
+	readTime, err := strconv.Atoi(c.PostForm("readTime"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid read time"})
 		return
 	}
-	err := h.service.CreatePost(&post)
+	post.ReadTime = readTime
+	hidden, _ := strconv.ParseBool(c.PostForm("hidden"))
+	post.IsActive = hidden
+
+	// Eğer bir görsel gönderildiyse işle
+	file, err := c.FormFile("image")
+	if err == nil {
+		filename := filepath.Base(file.Filename)
+		savePath := fmt.Sprintf("uploads/%s", filename)
+		if err := c.SaveUploadedFile(file, savePath); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to save file"})
+			return
+		}
+		post.ImageURL = fmt.Sprintf("http://localhost:8080/uploads/%s", filename)
+		fmt.Println(post.ImageURL)
+	}
+
+	// Post kaydetme işlemi
+	err = h.service.CreatePost(&post)
 	if err != nil {
 		c.Error(myerr.WithHTTPStatus(err, http.StatusInternalServerError))
 		return
 	}
+
 	c.JSON(http.StatusCreated, post)
 }
 
@@ -152,4 +183,27 @@ func (h *PostHandler) DeletePostPermanently(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, models.SuccessResponse{Message: "Post deleted permanently"})
+}
+
+// UploadImage handles the uploading of post images
+func (h *PostHandler) UploadImage(c *gin.Context) {
+	file, err := c.FormFile("image")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "No file found"})
+		return
+	}
+
+	// Save file to the server or upload to cloud storage
+	filename := filepath.Base(file.Filename)
+	savePath := fmt.Sprintf("uploads/%s", filename)
+	if err := c.SaveUploadedFile(file, savePath); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to save file"})
+		return
+	}
+
+	// URL to be returned
+	imageUrl := fmt.Sprintf("http://localhost:8080/%s", savePath)
+
+	// Return the URL to the frontend
+	c.JSON(http.StatusOK, gin.H{"imageUrl": imageUrl})
 }

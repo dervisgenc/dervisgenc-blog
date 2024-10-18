@@ -50,6 +50,7 @@
         0 0 20px rgba(168, 85, 247, 0.8),
         0 0 30px rgba(168, 85, 247, 0.8),
         0 0 40px rgba(168, 85, 247, 0.8);
+    z-index: -2;
 }
 
 .glitch::before,
@@ -164,4 +165,10 @@ button::before {
 
 button:hover::before {
     opacity: 1;
+}
+
+
+/* Sadece Login sayfasına özel mor efekt */
+.login-bg .bg-gradient-to-br {
+    background: linear-gradient(135deg, rgba(128, 0, 128, 1) 0%, rgba(0, 0, 128, 1) 100%);
 }

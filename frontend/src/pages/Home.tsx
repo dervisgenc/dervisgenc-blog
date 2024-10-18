@@ -7,12 +7,12 @@ import PrevButton from '../components/PrevButon';
 import axios from 'axios';  // Import axios
 
 interface BlogPost {
+    image_url: string;
     id: number;
     title: string;
     description: string;
-    date: string;
-    readTime: string;
-    image: string;
+    created_at: string;  // Backend'den gelen tarih (created_at)
+    read_time: number;   // Backend'den gelen okuma süresi (read_time)
 }
 
 interface HomePageProps {
@@ -31,8 +31,8 @@ const HomePage: React.FC<HomePageProps> = ({ isDarkMode }) => {
         const fetchPosts = async () => {
             try {
                 const response = await axios.get("http://localhost:8080/posts");  // Use environment variable
-                console.log("request sent");
                 setBlogPosts(response.data);
+                console.log(response.data); // Gelen veriyi kontrol et
             } catch (err) {
                 setError("Failed to fetch posts");
             }
@@ -41,10 +41,12 @@ const HomePage: React.FC<HomePageProps> = ({ isDarkMode }) => {
         fetchPosts();
     }, []);  // Empty array to run only once
 
-    const filteredPosts = blogPosts.filter((post) =>
-        post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        post.description.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    const filteredPosts = searchQuery
+        ? blogPosts.filter((post) =>
+            (post.title?.toLowerCase().includes(searchQuery.toLowerCase()) || '') ||
+            (post.description?.toLowerCase().includes(searchQuery.toLowerCase()) || '')
+        )
+        : blogPosts;
 
     const indexOfLastPost = currentPage * postsPerPage;
     const indexOfFirstPost = indexOfLastPost - postsPerPage;
@@ -65,6 +67,11 @@ const HomePage: React.FC<HomePageProps> = ({ isDarkMode }) => {
     if (error) {
         return <p>{error}</p>;  // Display error message if something goes wrong
     }
+    useEffect(() => {
+        if (currentPage > Math.ceil(filteredPosts.length / postsPerPage)) {
+            setCurrentPage(1);  // Eğer mevcut sayfa sayısı kalmıyorsa, ilk sayfaya dön
+        }
+    }, [filteredPosts, currentPage]);
 
     return (
         <main className="px-4 md:px-8 lg:px-16">
@@ -82,16 +89,17 @@ const HomePage: React.FC<HomePageProps> = ({ isDarkMode }) => {
                     <>
                         {/* Display posts if they exist */}
                         {currentPosts.length > 0 ? (
+
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
                                 {currentPosts.map((post, index) => (
                                     <BlogCard
                                         postId={post.id}
                                         key={index}
                                         title={post.title}
-                                        description={post.description}
-                                        date={post.date}
-                                        readTime={post.readTime}
-                                        image={post.image}
+                                        summary={post.description}
+                                        date={post.created_at ? post.created_at : "Unknown Date"} // Backend'den gelen created_at alanı
+                                        readTime={post.read_time ? `${post.read_time} min read` : "Unknown Read Time"}  // Backend'den gelen read_time alanı
+                                        image={encodeURI(post.image_url)}
                                     />
                                 ))}
                             </div>

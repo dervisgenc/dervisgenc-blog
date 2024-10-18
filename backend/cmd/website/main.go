@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/dervisgenc/dervisgenc-blog/backend/internal/auth"
 	"github.com/dervisgenc/dervisgenc-blog/backend/internal/post"
@@ -53,7 +54,17 @@ func main() {
 	// Start Gin router
 	r := gin.Default()
 
-	r.Use(cors.Default())
+	r.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"http://localhost:5173"}, // Önden gelen URL'yi ekle
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Authorization", "Content-Type"},
+		ExposeHeaders:    []string{"Content-Length"},
+		AllowCredentials: true,
+		MaxAge:           12 * time.Hour,
+	}))
+
+	// Serve static files from the "uploads" directory
+	r.Static("/uploads", "./uploads")
 
 	//Add error handling and logging middleware
 	r.Use(middleware.LoggingMiddleware(logger))
@@ -75,13 +86,14 @@ func main() {
 	statHandler := stat.NewStatHandler(statService)
 
 	//Public endpoints
-	r.POST("admin/login", loginHandler.LoginHandler)
+	r.POST("/admin/login", loginHandler.LoginHandler)
 
 	r.GET("/posts", postHandler.GetAllPosts)
 	r.GET("/posts/:id", postHandler.GetPostByID)
 
 	//Admin endpoints (needs authentication)
 	adminRoutes := r.Group("/admin")
+	// adminRoutes.Use(middleware.CORSMiddleware()) // Removed as cors.Default() is already used
 	adminRoutes.Use(middleware.AuthMiddleware(jwtSecret))
 	{
 		adminRoutes.POST("/posts", postHandler.CreatePost)
@@ -91,6 +103,7 @@ func main() {
 		adminRoutes.GET("/posts/stats", statHandler.GetAllPostsStats)
 		adminRoutes.GET("/posts/stats/:id", statHandler.GetPostStats)
 		adminRoutes.GET("/posts/count", statHandler.CountPosts)
+		adminRoutes.POST("/upload", postHandler.UploadImage)
 	}
 
 	//Enable swagger if SWAGGER_ENABLED is set to true

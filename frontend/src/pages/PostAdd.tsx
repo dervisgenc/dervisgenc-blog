@@ -2,35 +2,58 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ReactQuill from 'react-quill';
 import '../quill-custom.css';
+import axios from 'axios';
 
+// Export the PostAddPage component
 export default function PostAddPage() {
     const [newPost, setNewPost] = useState({
         title: '',
         description: '',
         content: '',
-        image: '/placeholder.svg?height=200&width=400',
+        imageFile: null as File | null, // Resim dosyasını burada tutacağız
         readTime: '',
         hidden: true,  // Can be saved as a draft initially
     });
     const navigate = useNavigate();
+    const [content, setContent] = useState('');
 
-    const handleSaveDraft = () => {
-        // Save the post as a draft
-        console.log('Draft saved:', newPost);
-        // Return to the admin page after saving the draft
-        navigate('/sentinel');
+    // Blog gönderisi ve görseli birlikte backend'e gönderme fonksiyonu
+    const handleSubmit = async (isDraft: boolean) => {
+        const formData = new FormData();
+
+        // Post verilerini formData'ya ekle
+        formData.append('title', newPost.title);
+        formData.append('description', newPost.description);
+        formData.append('content', content);  // Quill'den alınan content
+        formData.append('readTime', newPost.readTime);
+        formData.append('hidden', JSON.stringify(isDraft));  // Taslak olarak mı kaydediliyor?
+
+        // Kapak görselini formData'ya ekle
+        if (newPost.imageFile) {
+            formData.append('image', newPost.imageFile);
+        }
+
+        try {
+            const token = localStorage.getItem('token');
+            await axios.post('http://localhost:8080/admin/posts', formData, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'multipart/form-data',
+                },
+            });
+            console.log('Post saved');
+            navigate('/sentinel');
+        } catch (err) {
+            console.error('Error saving post:', err);
+        }
     };
 
-    const handlePublish = () => {
-        // Publish the post (hidden: false should be set)
-        const postToPublish = { ...newPost, hidden: false };
-        console.log('Published:', postToPublish);
-        // Return to the admin page after publishing
-        navigate('/sentinel');
-    };
+    // Yayınlama ve taslak kaydetme fonksiyonları
+    const handleSaveDraft = () => handleSubmit(true);
+    const handlePublish = () => handleSubmit(false);
 
+    // İptal etme fonksiyonu
     const handleCancel = () => {
-        // Return to the admin page
         navigate('/sentinel');
     };
 
@@ -54,12 +77,25 @@ export default function PostAddPage() {
                     placeholder="Description"
                     rows={3}
                 />
+
+                {/* Kapak görseli yükleme inputu */}
+                <input
+                    type="file"
+                    accept="image/*"
+                    onChange={e => setNewPost({ ...newPost, imageFile: e.target.files![0] })}
+                    className="mb-4"
+                />
+
+                {/* Quill Editor */}
                 <ReactQuill
                     theme="snow"
-                    value={newPost.content}
-                    onChange={content => setNewPost({ ...newPost, content })}
-                    className="quill-editor"
+                    value={content}
+                    onChange={setContent}
+                    modules={{
+                        toolbar: [['bold', 'italic', 'underline', 'image']],
+                    }}
                 />
+
                 <input
                     type="text"
                     value={newPost.readTime}
@@ -67,6 +103,7 @@ export default function PostAddPage() {
                     className="w-full p-2 mb-4 bg-gray-700 text-white rounded"
                     placeholder="Read Time"
                 />
+
                 <div className="flex justify-between space-x-4">
                     <button
                         onClick={handleCancel}

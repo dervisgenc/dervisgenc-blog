@@ -2,6 +2,7 @@ package auth
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/golang-jwt/jwt"
@@ -76,6 +77,7 @@ func HashPassword(password string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	fmt.Println("Hashed password: ", string(hashedPassword))
 	return string(hashedPassword), nil
 }
 
