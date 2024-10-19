@@ -155,8 +155,13 @@ func (h *PostHandler) UpdatePost(c *gin.Context) {
 // @Failure 500 {object} models.ErrorResponse "Internal Server Error"
 // @Router /posts/{id} [delete]
 func (h *PostHandler) DeletePost(c *gin.Context) {
-	var id uint = c.GetUint("id")
-	err := h.service.DeletePost(id)
+	idParam := c.Param("id")
+	id, err := strconv.ParseUint(idParam, 10, 32)
+	if err != nil {
+		c.Error(myerr.WithHTTPStatus(err, http.StatusBadRequest))
+		return
+	}
+	err = h.service.DeletePost(uint(id))
 	if err != nil {
 		c.Error(myerr.WithHTTPStatus(err, http.StatusInternalServerError))
 		return
@@ -176,8 +181,13 @@ func (h *PostHandler) DeletePost(c *gin.Context) {
 // @Failure 500 {object} models.ErrorResponse "Internal Server Error"
 // @Router /posts/{id}/permanent [delete]
 func (h *PostHandler) DeletePostPermanently(c *gin.Context) {
-	var id uint = c.GetUint("id")
-	err := h.service.DeletePostPermanently(id)
+	idParam := c.Param("id")
+	id, err := strconv.ParseUint(idParam, 10, 32)
+	if err != nil {
+		c.Error(myerr.WithHTTPStatus(err, http.StatusBadRequest))
+		return
+	}
+	err = h.service.DeletePostPermanently(uint(id))
 	if err != nil {
 		c.Error(myerr.WithHTTPStatus(err, http.StatusInternalServerError))
 		return
@@ -224,4 +234,19 @@ func (h *PostHandler) GetAllAdmin(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, posts)
+}
+
+func (h *PostHandler) GetPostByIDAdmin(c *gin.Context) {
+	idParam := c.Param("id")
+	id, err := strconv.ParseUint(idParam, 10, 32)
+	if err != nil {
+		c.Error(myerr.WithHTTPStatus(err, http.StatusBadRequest))
+		return
+	}
+	post, err := h.service.GetPostByIDAdmin(uint(id))
+	if err != nil {
+		c.Error(myerr.WithHTTPStatus(err, http.StatusInternalServerError))
+		return
+	}
+	c.JSON(http.StatusOK, post)
 }

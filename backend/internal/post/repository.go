@@ -13,6 +13,8 @@ type PostRepository interface {
 	Create(post *models.Post) error
 	Update(post *models.Post) error
 	Delete(post_id uint) error
+	FindAllAdmin() ([]*models.Post, error)
+	FindByIDAdmin(id uint) (*models.Post, error)
 }
 
 type postRepository struct {
@@ -39,6 +41,15 @@ func (r *postRepository) Delete(post_id uint) error {
 
 func (r *postRepository) FindByID(id uint) (*models.Post, error) {
 	var post models.Post
+
+	if err := r.db.First(&post, id).Error; err != nil || !post.IsActive {
+		return nil, errors.New("error while fetching post")
+	}
+
+	return &post, nil
+}
+func (r *postRepository) FindByIDAdmin(id uint) (*models.Post, error) {
+	var post models.Post
 	if err := r.db.First(&post, id).Error; err != nil {
 		return nil, errors.New("error while fetching post")
 	}
@@ -62,7 +73,7 @@ func (r *postRepository) FindAll() ([]*models.Post, error) {
 
 func (r *postRepository) FindAllAdmin() ([]*models.Post, error) {
 	var posts []*models.Post
-	if err := r.db.Find(&posts).Error; err != nil {
+	if err := r.db.Order("created_at desc").Find(&posts).Error; err != nil {
 		return nil, errors.New("error while fetching posts")
 	}
 	return posts, nil

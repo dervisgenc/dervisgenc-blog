@@ -10,9 +10,13 @@ interface LayoutProps {
 export default function Layout({ children, isDarkMode, toggleDarkMode }: LayoutProps) {
     return (
         <div className={`min-h-screen flex flex-col ${isDarkMode ? 'dark-mode' : 'light-mode'}`}>
-            <Header isDarkMode={isDarkMode} toggleDarkMode={toggleDarkMode} />
+            {window.location.pathname !== '/about' && (
+                <>
+                    <Header isDarkMode={isDarkMode} toggleDarkMode={toggleDarkMode} />
+                </>
+            )}
             <main className="flex-grow">{children}</main>
-            <Footer />
+            {window.location.pathname !== '/about' && <Footer />}
         </div>
     );
 }

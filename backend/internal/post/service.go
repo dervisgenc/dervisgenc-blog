@@ -19,11 +19,14 @@ func (s *PostService) GetAllPosts() ([]*models.Post, error) {
 	return s.postRepo.FindAll()
 }
 func (s *PostService) GetAllAdmin() ([]*models.Post, error) {
-	return s.postRepo.FindAll()
+	return s.postRepo.FindAllAdmin()
 }
 
 func (s *PostService) GetPostByID(id uint) (*models.Post, error) {
 	return s.postRepo.FindByID(id)
+}
+func (s *PostService) GetPostByIDAdmin(id uint) (*models.Post, error) {
+	return s.postRepo.FindByIDAdmin(id)
 }
 
 func (s *PostService) CreatePost(post *models.Post) error {
@@ -37,7 +40,7 @@ func (s *PostService) CreatePost(post *models.Post) error {
 
 func (s *PostService) UpdatePost(post *models.Post) error {
 
-	_, err := s.postRepo.FindByID(post.ID)
+	_, err := s.postRepo.FindByIDAdmin(post.ID)
 	if err != nil {
 		return errors.New("post not found")
 	}

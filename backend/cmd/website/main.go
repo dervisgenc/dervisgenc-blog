@@ -99,6 +99,7 @@ func main() {
 		adminRoutes.POST("/posts", postHandler.CreatePost)
 		adminRoutes.GET("/posts", postHandler.GetAllAdmin)
 		adminRoutes.PUT("/posts/:id", postHandler.UpdatePost)
+		adminRoutes.GET("/posts/:id", postHandler.GetPostByIDAdmin)
 		adminRoutes.DELETE("/posts/:id", postHandler.DeletePost)
 		adminRoutes.DELETE("/posts/:id/permanent", postHandler.DeletePostPermanently)
 		adminRoutes.GET("/posts/stats", statHandler.GetAllPostsStats)

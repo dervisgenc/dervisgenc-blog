@@ -72,11 +72,7 @@ nav button:hover {
   background-color: #374151;
 }
 
-/* Main content */
-main {
-  padding-top: 0.5rem;
-  padding-bottom: 2rem;
-}
+
 
 /* Search box */
 .search-container {
@@ -135,7 +131,7 @@ main {
 }
 
 .light-mode {
-  background-color: #ffffff;
+  background-color: #edf1f1;
   color: #1f2937;
   /* Dark gray for text */
 }
@@ -173,7 +169,7 @@ main {
 }
 
 .light-mode .blog-card {
-  background-color: #e7e7e7;
+  background-color: #ffffff;
   border: px solid #acacac;
   /* Light gray border */
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);

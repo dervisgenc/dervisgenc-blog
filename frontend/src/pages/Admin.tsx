@@ -26,7 +26,6 @@ export default function AdminPage({ isDarkMode }: AdminPageProps) {
     const [posts, setPosts] = useState<Post[]>([]);
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [isError, setIsError] = useState<string | null>(null);
-    const [] = useState<Post | null>(null);
     const { token } = useAuth();
     const navigate = useNavigate();
 
@@ -34,6 +33,7 @@ export default function AdminPage({ isDarkMode }: AdminPageProps) {
     const [confirmAction, setConfirmAction] = useState<'delete' | 'hide' | null>(null);
     const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
 
+    // Backend'den postları çekme
     useEffect(() => {
         const fetchPosts = async () => {
             try {
@@ -64,22 +64,42 @@ export default function AdminPage({ isDarkMode }: AdminPageProps) {
         setIsConfirmModalOpen(true);
     };
 
-    const handleToggleHide = (id: string) => {
+    const handleToggleHide = async (id: string) => {
         setConfirmAction('hide');
         setSelectedPostId(id);
         setIsConfirmModalOpen(true);
+
     };
 
-    const confirmActionHandler = () => {
-        if (selectedPostId && confirmAction) {
-            if (confirmAction === 'delete') {
-                setPosts(posts.filter((post) => post.id !== selectedPostId));
-            } else if (confirmAction === 'hide') {
-                setPosts(
-                    posts.map((post) =>
-                        post.id === selectedPostId ? { ...post, is_active: !post.is_active } : post
-                    )
-                );
+    const confirmActionHandler = async () => {
+        if (selectedPostId && confirmAction === 'hide') {
+            const postToUpdate = posts.find(post => post.id === selectedPostId);
+            if (!postToUpdate) return;
+
+            const updatedPost = { ...postToUpdate, is_active: !postToUpdate.is_active };
+
+            try {
+                await axios.put(`http://localhost:8080/admin/posts/${selectedPostId}`, updatedPost, {
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                });
+                // Başarılı olursa state'i güncelle
+                setPosts(posts.map(post => post.id === selectedPostId ? updatedPost : post));
+            } catch (error) {
+                setIsError('Failed to update post visibility');
+            }
+        } else if (selectedPostId && confirmAction === 'delete') {
+            try {
+                await axios.delete(`http://localhost:8080/admin/posts/${selectedPostId}/permanent`, {
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                });
+
+                setPosts(posts.filter(post => post.id !== selectedPostId));
+            } catch (error) {
+                setIsError('Failed to delete post');
             }
         }
         setIsConfirmModalOpen(false);
@@ -190,11 +210,9 @@ export default function AdminPage({ isDarkMode }: AdminPageProps) {
             <ConfirmationModal
                 isOpen={isConfirmModalOpen}
                 title={confirmAction === 'delete' ? 'Delete Post' : 'Toggle Post Visibility'}
-                message={
-                    confirmAction === 'delete'
-                        ? 'Are you sure you want to delete this post? This action cannot be undone.'
-                        : 'Are you sure you want to hide/show this post?'
-                }
+                message={confirmAction === 'delete'
+                    ? 'Are you sure you want to delete this post? This action cannot be undone.'
+                    : 'Are you sure you want to hide/show this post?'}
                 onConfirm={confirmActionHandler}
                 onCancel={cancelActionHandler}
             />

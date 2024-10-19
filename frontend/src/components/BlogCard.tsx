@@ -10,7 +10,7 @@ interface BlogCardProps {
     isDarkMode: boolean;  // Yeni prop
 }
 
-const BlogCard: React.FC<BlogCardProps> = ({ title, summary, date, readTime, image, postId, isDarkMode }) => {
+const BlogCard: React.FC<BlogCardProps> = ({ title, summary, date, readTime, image, isDarkMode }) => {
     const formatDate = (dateString: string) => {
         const date = new Date(dateString);
         return new Intl.DateTimeFormat('en-GB', {

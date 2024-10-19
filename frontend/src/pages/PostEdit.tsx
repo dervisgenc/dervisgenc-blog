@@ -1,42 +1,21 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import axios from 'axios';
+import { useAuth } from '@/components/context/AuthContext';
 import '../quill-custom.css';
 
 interface Post {
     id: string;
     title: string;
-    description: string;
+    summary: string;
     content: string;
-    date: string;
-    readTime: string;
-    image: string;
-    hidden: boolean;
+    created_at: string;
+    read_time: number;
+    image_url: string;
+    is_active: boolean;
 }
-
-const initialPosts: Post[] = [
-    {
-        id: '1',
-        title: "Hacking Techniques: A Deep Dive",
-        description: "Explore the latest hacking techniques and how to protect against them in this comprehensive guide.",
-        content: "<p>This is some detailed content for the hacking guide.</p>",
-        date: "May 15, 2023",
-        readTime: "5 min read",
-        image: "/placeholder.svg?height=200&width=400",
-        hidden: false
-    },
-    {
-        id: '2',
-        title: "Cybersecurity Trends 2023",
-        description: "Stay ahead of the curve with our analysis of the top cybersecurity trends for 2023.",
-        content: "<p>This is the latest trends in cybersecurity.</p>",
-        date: "May 20, 2023",
-        readTime: "7 min read",
-        image: "/placeholder.svg?height=200&width=400",
-        hidden: false
-    }
-];
 
 // Custom toolbar options for the Quill editor
 const modules = {
@@ -59,15 +38,103 @@ const formats = [
 export default function PostEditPage() {
     const { id } = useParams();
     const navigate = useNavigate();
-    const post = initialPosts.find(p => p.id === id);
-    const [editingPost, setEditingPost] = useState<Post | null>(post || null);
+    const { token } = useAuth();
 
+    const [editingPost, setEditingPost] = useState<Post | null>(null);
+    const [newImage, setNewImage] = useState<File | null>(null);
+    const [initialPost, setInitialPost] = useState<Post | null>(null);
+    const [isLoading, setIsLoading] = useState<boolean>(true);
+    const [error, setError] = useState<string | null>(null);
+
+    // Postu backend'den çekme
+    useEffect(() => {
+        const fetchPost = async () => {
+            try {
+                const response = await axios.get(`http://localhost:8080/admin/posts/${id}`, {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                });
+
+                // Gelen post verilerini hem `initialPost` hem de `editingPost`'a atıyoruz
+                const postData = response.data;
+                setInitialPost(postData);
+                setEditingPost(postData); // Tüm alanların aynı olmasını sağlıyoruz
+                setIsLoading(false);
+            } catch (err) {
+                setError('Failed to fetch post');
+                setIsLoading(false);
+            }
+        };
+        fetchPost();
+    }, [id, token]);
+
+
+    if (isLoading) return <p>Loading...</p>;
+    if (error) return <p>{error}</p>;
     if (!editingPost) return <p>Post not found</p>;
 
-    const handleSave = () => {
-        console.log('Updated post:', editingPost);
-        navigate('/sentinel');  // Admin sayfasına dön
+    // Kapak resmi değiştirme işlemi
+    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            setNewImage(e.target.files[0]);
+        }
     };
+
+    const handleSave = async () => {
+        try {
+            const postUpdateData: Partial<Post> = {
+                id: editingPost?.id || initialPost?.id,  // ID'yi koruyoruz
+                is_active: initialPost?.is_active,
+                created_at: initialPost?.created_at,
+                image_url: initialPost?.image_url,
+                title: editingPost?.title !== initialPost?.title ? editingPost?.title : initialPost?.title,
+                summary: editingPost?.summary !== initialPost?.summary ? editingPost?.summary : initialPost?.summary,
+                content: editingPost?.content !== initialPost?.content ? editingPost?.content : initialPost?.content,
+                read_time: editingPost?.read_time !== initialPost?.read_time ? editingPost?.read_time : initialPost?.read_time,
+            };
+
+            // Eğer herhangi bir değişiklik varsa gönder
+            if (Object.keys(postUpdateData).length > 0) {
+                await axios.put(`http://localhost:8080/admin/posts/${editingPost?.id}`, postUpdateData, {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                });
+            }
+
+            // Yeni kapak resmi seçildiyse onu da yükle
+            if (newImage) {
+                const formData = new FormData();
+                formData.append('image', newImage);
+
+                const uploadResponse = await axios.post(`http://localhost:8080/admin/upload`, formData, {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                        'Content-Type': 'multipart/form-data',
+                    },
+                });
+
+                // Yüklenen yeni resmin URL'sini güncelle
+                const updatedPost = {
+                    ...editingPost,
+                    image_url: uploadResponse.data.imageUrl,
+                };
+
+                await axios.put(`http://localhost:8080/admin/posts/${editingPost?.id}`, updatedPost, {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                });
+            }
+
+            navigate('/sentinel'); // Admin sayfasına dön
+        } catch (err) {
+            console.error('Failed to update post', err);
+        }
+    };
+
+
 
     return (
         <div className="min-h-screen bg-gray-900 text-gray-100 p-8">
@@ -83,11 +150,11 @@ export default function PostEditPage() {
                     placeholder="Title"
                 />
                 <textarea
-                    value={editingPost.description}
-                    onChange={e => setEditingPost({ ...editingPost, description: e.target.value })}
+                    value={editingPost.summary}
+                    onChange={e => setEditingPost({ ...editingPost, summary: e.target.value })}
                     className="w-full p-2 mb-4 bg-gray-700 text-white rounded"
-                    placeholder="Description"
-                    rows={3}
+                    placeholder="summary"
+                    rows={5}
                 />
                 <ReactQuill
                     theme="snow"
@@ -95,15 +162,22 @@ export default function PostEditPage() {
                     onChange={content => setEditingPost({ ...editingPost, content })}
                     modules={modules}
                     formats={formats}
-                    className="quill-editor"
+                    className="quill-editor mb-4"
                 />
                 <input
-                    type="text"
-                    value={editingPost.readTime}
-                    onChange={e => setEditingPost({ ...editingPost, readTime: e.target.value })}
+                    type="number"
+                    value={editingPost.read_time}
+                    onChange={e => setEditingPost({ ...editingPost, read_time: parseInt(e.target.value) })}
                     className="w-full p-2 mb-4 bg-gray-700 text-white rounded"
                     placeholder="Read Time"
                 />
+
+                {/* Kapak Resmi Yükleme */}
+                <div className="mb-4">
+                    <label className="block text-white mb-2">Change Cover Image</label>
+                    <input type="file" onChange={handleImageChange} className="w-full p-2 bg-gray-700 text-white rounded" />
+                </div>
+
                 <div className="flex justify-end space-x-2">
                     <button
                         onClick={() => navigate('/sentinel')}
