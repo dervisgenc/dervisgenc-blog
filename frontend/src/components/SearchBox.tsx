@@ -70,7 +70,7 @@ const SearchBox: React.FC<SearchBoxProps> = ({ isDarkMode, searchQuery, setSearc
     }, []);
 
     return (
-        <div className="search-container max-w-3xl mx-auto" ref={searchBoxRef}>
+        <div className="search-container max-w-2xl mx-auto" ref={searchBoxRef}>
             <div className="relative h-10">
                 <MatrixRain width={searchBoxSize.width} height={searchBoxSize.height} isDarkMode={isDarkMode} />
                 <input

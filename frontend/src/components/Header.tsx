@@ -9,10 +9,10 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ isDarkMode, toggleDarkMode }) => {
     return (
-        <header className='w-full flex items-center justify-between p-4'>
+        <header className='w-full flex items-center justify-between'>
             <div className="flex items-center">
                 {/* Logo biraz aşağı kaydırıldı */}
-                <CyberTronLogo size={40} className="mr-2 relative top-0.5" />
+                <CyberTronLogo size={30} className="mr-2 relative top-0.5" />
                 <h1 className="text-2xl font-bold text-center bg-clip-text text-transparent bg-gradient-to-r from-purple-400 via-pink-500 to-blue-700">
                     <a href="/">CyberTron</a>
                 </h1>

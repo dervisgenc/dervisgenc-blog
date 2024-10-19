@@ -9,6 +9,7 @@ import axios from 'axios';
 interface Post {
     id: number;
     title: string;
+    summary: string;
     content: string;
     image_url: string;
     likes: number;
@@ -94,7 +95,10 @@ export default function PostPage() {
                         {post.title}
                     </h1>
                 </div>
+
+                {/* Summary added below the title */}
                 <CardContent className="p-6">
+                    <p className="text-gray-400 mb-6 italic">{post.summary}</p> {/* Summary with a different style */}
                     <div className="prose prose-invert max-w-none">
                         <div
                             className="text-gray-300 leading-relaxed mb-4"

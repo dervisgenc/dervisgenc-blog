@@ -1,20 +1,25 @@
 package middleware
 
 import (
-	apperr "github.com/dervisgenc/dervisgenc-blog/backend/pkg"
+	// Add this import
+	"fmt"
+
+	myerr "github.com/dervisgenc/dervisgenc-blog/backend/pkg"
 	"github.com/dervisgenc/dervisgenc-blog/backend/pkg/models"
 	"github.com/gin-gonic/gin"
 )
 
 func ErrorMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		c.Next() // start next middleware
+		c.Next() // Start next middleware
 
-		//catch errors
+		// Catch errors
 		err := c.Errors.Last()
+		fmt.Println(c.Errors)
 		if err != nil {
 			// Get HTTP status code from error
-			status := apperr.HTTPStatus(err.Err)
+			status := myerr.HTTPStatus(err.Err)
+
 			// Return error response
 			c.JSON(status, models.ErrorResponse{
 				Error: err.Err.Error(),

@@ -55,7 +55,7 @@ func main() {
 	r := gin.Default()
 
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:5173"}, // Önden gelen URL'yi ekle
+		AllowOrigins:     []string{"http://localhost:5173", "http://localhost:3000"}, // Önden gelen URL'yi ekle
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Authorization", "Content-Type"},
 		ExposeHeaders:    []string{"Content-Length"},
@@ -97,6 +97,7 @@ func main() {
 	adminRoutes.Use(middleware.AuthMiddleware(jwtSecret))
 	{
 		adminRoutes.POST("/posts", postHandler.CreatePost)
+		adminRoutes.GET("/posts", postHandler.GetAllAdmin)
 		adminRoutes.PUT("/posts/:id", postHandler.UpdatePost)
 		adminRoutes.DELETE("/posts/:id", postHandler.DeletePost)
 		adminRoutes.DELETE("/posts/:id/permanent", postHandler.DeletePostPermanently)

@@ -1,0 +1,6 @@
+
+> frontend@0.0.0 build
+> tsc -b && vite build --profile --json
+
+src/components/Footer.tsx(3,11): error TS6196: 'FooterProps' is declared but never used.
+src/pages/Admin.tsx(29,12): error TS6133: 'editingPost' is declared but its value is never read.

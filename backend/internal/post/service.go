@@ -18,6 +18,9 @@ func NewPostService(postRepo PostRepository) *PostService {
 func (s *PostService) GetAllPosts() ([]*models.Post, error) {
 	return s.postRepo.FindAll()
 }
+func (s *PostService) GetAllAdmin() ([]*models.Post, error) {
+	return s.postRepo.FindAll()
+}
 
 func (s *PostService) GetPostByID(id uint) (*models.Post, error) {
 	return s.postRepo.FindByID(id)

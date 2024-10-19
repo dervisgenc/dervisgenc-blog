@@ -11,31 +11,27 @@ import AllPostsStats from './pages/AllStats';
 import PostPage from './pages/Post';
 import PrivateRoute from './components/PrivateRoute';
 import { AuthProvider } from './components/context/AuthContext';
+import ErrorBoundary from './components/ErrorBoundary';
 
 function AppContent() {
   const [isDarkMode, setIsDarkMode] = useState(true);
 
   return (
     <Router>
-      <Layout isDarkMode={isDarkMode} toggleDarkMode={() => setIsDarkMode(!isDarkMode)}>
-        <Routes>
-          <Route path="/" element={<HomePage isDarkMode={isDarkMode} />} />
-          <Route path="/post/:id" element={<PostPage />} />
-          <Route path="/sentinel/login" element={<LoginPage />} />
-          <Route
-            path="/sentinel"
-            element={
-              <PrivateRoute>
-                <AdminPage isDarkMode={isDarkMode} />
-              </PrivateRoute>
-            }
-          />
-          <Route path="/edit/:id" element={<PrivateRoute><PostEditPage /></PrivateRoute>} />
-          <Route path="/add" element={<PrivateRoute><PostAddPage /></PrivateRoute>} />
-          <Route path="/sentinel/stats/:id" element={<PrivateRoute><PostStats /></PrivateRoute>} />
-          <Route path="/sentinel/stats" element={<PrivateRoute><AllPostsStats /></PrivateRoute >} />
-        </Routes >
-      </Layout >
+      <ErrorBoundary>
+        <Layout isDarkMode={isDarkMode} toggleDarkMode={() => setIsDarkMode(!isDarkMode)}>
+          <Routes>
+            <Route path="/" element={<HomePage isDarkMode={isDarkMode} />} />
+            <Route path="/post/:id" element={<PostPage />} />
+            <Route path="/sentinel/login" element={<LoginPage />} />
+            <Route path="/sentinel" element={<PrivateRoute><AdminPage isDarkMode={isDarkMode} /></PrivateRoute>} />
+            <Route path="/edit/:id" element={<PrivateRoute><PostEditPage /></PrivateRoute>} />
+            <Route path="/add" element={<PrivateRoute><PostAddPage /></PrivateRoute>} />
+            <Route path="/sentinel/stats/:id" element={<PrivateRoute><PostStats /></PrivateRoute>} />
+            <Route path="/sentinel/stats" element={<PrivateRoute><AllPostsStats /></PrivateRoute >} />
+          </Routes >
+        </Layout >
+      </ErrorBoundary>
     </Router >
   );
 

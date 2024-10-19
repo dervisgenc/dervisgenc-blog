@@ -4,8 +4,7 @@ import axios from 'axios'; // Axios'u import ettik
 import "../login.css"
 import { useAuth } from '@/components/context/AuthContext'; // AuthContext'i import ettik
 import { useNavigate } from 'react-router-dom';
-import Header from '@/components/Header';
-import Footer from '@/components/Footer';
+
 
 const MatrixRain = () => {
     useEffect(() => {
@@ -61,6 +60,7 @@ export default function LoginPage() {
     const { login } = useAuth();
     const navigate = useNavigate();
 
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
@@ -69,12 +69,19 @@ export default function LoginPage() {
                 username,
                 password,
             });
-            login(response.data.token);
-            navigate('/sentinel');
+
+            const token = response.data.token;
+            if (token) {
+                login(token); // Token varsa login yap
+                navigate('/sentinel');
+            } else {
+                setError('Login failed: Invalid username or password');
+            }
         } catch (err) {
             setError('Login failed: Invalid username or password');
         }
     };
+
 
     return (
 

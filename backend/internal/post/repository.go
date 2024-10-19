@@ -54,6 +54,14 @@ func (r *postRepository) Update(post *models.Post) error {
 
 func (r *postRepository) FindAll() ([]*models.Post, error) {
 	var posts []*models.Post
+	if err := r.db.Where("is_active = ?", "true").Order("created_at desc").Find(&posts).Error; err != nil {
+		return nil, errors.New("error while fetching posts")
+	}
+	return posts, nil
+}
+
+func (r *postRepository) FindAllAdmin() ([]*models.Post, error) {
+	var posts []*models.Post
 	if err := r.db.Find(&posts).Error; err != nil {
 		return nil, errors.New("error while fetching posts")
 	}

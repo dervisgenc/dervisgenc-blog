@@ -10,7 +10,7 @@ interface BlogPost {
     image_url: string;
     id: number;
     title: string;
-    description: string;
+    summary: string;
     created_at: string;  // Backend'den gelen tarih (created_at)
     read_time: number;   // Backend'den gelen okuma süresi (read_time)
 }
@@ -22,29 +22,28 @@ interface HomePageProps {
 const HomePage: React.FC<HomePageProps> = ({ isDarkMode }) => {
     const [searchQuery, setSearchQuery] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
-    const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);  // Fetch posts from the API
-    const [error, setError] = useState<string | null>(null);      // Error state for handling issues
+    const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
+    const [error, setError] = useState<string | null>(null);
     const postsPerPage = 6;
 
-    // Ensure useEffect runs only once on mount
     useEffect(() => {
         const fetchPosts = async () => {
             try {
-                const response = await axios.get("http://localhost:8080/posts");  // Use environment variable
+                const response = await axios.get("http://localhost:8080/posts");
                 setBlogPosts(response.data);
-                console.log(response.data); // Gelen veriyi kontrol et
             } catch (err) {
-                setError("Failed to fetch posts");
+                // Backend bağlantısı hatası için sadece bir bilgi mesajı göstermek
+                setError("Connection error. Still fetching posts...");
             }
         };
 
         fetchPosts();
-    }, []);  // Empty array to run only once
+    }, []);
 
     const filteredPosts = searchQuery
         ? blogPosts.filter((post) =>
             (post.title?.toLowerCase().includes(searchQuery.toLowerCase()) || '') ||
-            (post.description?.toLowerCase().includes(searchQuery.toLowerCase()) || '')
+            (post.summary?.toLowerCase().includes(searchQuery.toLowerCase()) || '')
         )
         : blogPosts;
 
@@ -64,46 +63,53 @@ const HomePage: React.FC<HomePageProps> = ({ isDarkMode }) => {
         }
     };
 
-    if (error) {
-        return <p>{error}</p>;  // Display error message if something goes wrong
-    }
     useEffect(() => {
         if (currentPage > Math.ceil(filteredPosts.length / postsPerPage)) {
-            setCurrentPage(1);  // Eğer mevcut sayfa sayısı kalmıyorsa, ilk sayfaya dön
+            setCurrentPage(1);
         }
     }, [filteredPosts, currentPage]);
 
+    // Hata durumu olsa bile sayfa çalışmaya devam eder
     return (
-        <main className="px-4 md:px-8 lg:px-16">
+        <main className="px-4 md:px-8 lg:px-16 min-h-screen">
             <SearchBox isDarkMode={isDarkMode} searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
             <div className="max-w-7xl mx-auto">
-                {/* Check if a search has been performed */}
-                {searchQuery && filteredPosts.length === 0 ? (
+                {/* Backend bağlantısı hatası durumunda bilgi mesajı */}
+                {error && (
+                    <div className="text-red-500 text-center my-4">
+                        {error}
+                    </div>
+                )}
+                {searchQuery && filteredPosts.length === 0 && !error ? (
                     <div className="flex flex-col justify-center mt-12 w-full">
                         <AlertTriangle size={72} className="text-red-500 mb-4 mx-auto" />
                         <p className="text-xl text-red-500 text-center">
-                            Aramanızla eşleşen makale bulunamadı.
+                            No posts found with the search term "{searchQuery}"
                         </p>
+                    </div>
+                ) : null}
+                {/* Boş post durumu */}
+                {currentPosts.length === 0 && !error && searchQuery === '' ? (
+                    <div className="text-gray-500 text-center my-4">
+                        No post yet
                     </div>
                 ) : (
                     <>
-                        {/* Display posts if they exist */}
-                        {currentPosts.length > 0 ? (
-
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-                                {currentPosts.map((post, index) => (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+                            {currentPosts.map((post, index) => (
+                                <a href={`/post/${post.id}`} key={index}>
                                     <BlogCard
                                         postId={post.id}
-                                        key={index}
                                         title={post.title}
-                                        summary={post.description}
-                                        date={post.created_at ? post.created_at : "Unknown Date"} // Backend'den gelen created_at alanı
-                                        readTime={post.read_time ? `${post.read_time} min read` : "Unknown Read Time"}  // Backend'den gelen read_time alanı
+                                        summary={post.summary}
+                                        date={post.created_at ? post.created_at : "Unknown Date"}
+                                        readTime={post.read_time ? `${post.read_time} min read` : "Unknown Read Time"}
                                         image={encodeURI(post.image_url)}
+                                        isDarkMode={isDarkMode}  // Dark mode prop'u ekledik
                                     />
-                                ))}
-                            </div>
-                        ) : null}
+                                </a>
+                            ))}
+                        </div>
 
                         {/* Pagination */}
                         {filteredPosts.length > postsPerPage && (
@@ -114,7 +120,7 @@ const HomePage: React.FC<HomePageProps> = ({ isDarkMode }) => {
                                 />
 
                                 <span className="text-gray-500 text-sm mx-4">
-                                    Sayfa {currentPage} / {Math.ceil(filteredPosts.length / postsPerPage)}
+                                    Page {currentPage} / {Math.ceil(filteredPosts.length / postsPerPage)}
                                 </span>
 
                                 <NextButton

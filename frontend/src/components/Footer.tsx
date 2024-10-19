@@ -1,8 +1,5 @@
 import { Info } from 'lucide-react'
 
-interface FooterProps {
-    isDarkMode: boolean;
-}
 
 export default function Footer() {
     return (

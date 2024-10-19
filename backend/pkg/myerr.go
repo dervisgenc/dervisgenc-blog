@@ -20,13 +20,12 @@ func HTTPStatus(err error) int {
 	if err == nil {
 		return 0
 	}
-	var statusErr interface {
-		error
-		HTTPStatus() int
-	}
+
+	var statusErr *statusErr
 	if errors.As(err, &statusErr) {
-		return statusErr.HTTPStatus()
+		return statusErr.status
 	}
+
 	return http.StatusInternalServerError
 }
 
@@ -34,5 +33,9 @@ func HTTPStatus(err error) int {
 // nil, this function returns nil. If err is non-nil, and does not include an
 // HTTP status, a new error is returned with the given status code.
 func WithHTTPStatus(err error, status int) error {
+	if existingErr, ok := err.(*statusErr); ok {
+		return existingErr
+	}
+
 	return &statusErr{err, status}
 }

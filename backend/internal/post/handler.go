@@ -207,3 +207,21 @@ func (h *PostHandler) UploadImage(c *gin.Context) {
 	// Return the URL to the frontend
 	c.JSON(http.StatusOK, gin.H{"imageUrl": imageUrl})
 }
+
+// GetAllPosts godoc
+// @Summary Get all posts
+// @Description Fetch all posts in the system
+// @Tags Posts
+// @Accept json
+// @Produce json
+// @Success 200 {array} models.Post
+// @Failure 500 {object} models.ErrorResponse "Internal Server Error"
+// @Router /posts [get]
+func (h *PostHandler) GetAllAdmin(c *gin.Context) {
+	posts, err := h.service.GetAllAdmin()
+	if err != nil {
+		c.Error(myerr.WithHTTPStatus(errors.New("internal Server Error"), http.StatusInternalServerError))
+		return
+	}
+	c.JSON(http.StatusOK, posts)
+}
