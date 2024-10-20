@@ -21,7 +21,7 @@ export default function Footer() {
                         className="flex items-center bg-gray-800 hover:bg-purple-700 text-gray-300 px-4 py-1 rounded-full text-xs transition duration-300 ease-in-out whitespace-nowrap"
                         onClick={(e) => {
                             e.currentTarget.blur(); // After clicking the button, remove focus
-                            console.log('About Me clicked');
+                            window.location.href = '/about';
                         }}
                     >
                         <Info size={12} className="mr-2" />

@@ -24,7 +24,7 @@ function AppContent() {
         <Layout isDarkMode={isDarkMode} toggleDarkMode={() => setIsDarkMode(!isDarkMode)}>
           <Routes>
             <Route path="/" element={<HomePage isDarkMode={isDarkMode} />} />
-            <Route path="/post/:id" element={<PostPage />} />
+            <Route path="/post/:id" element={<PostPage isDarkMode={isDarkMode} />} />
             <Route path="/about" element={<AboutMe />} />
             <Route path="/sentinel/login" element={<LoginPage />} />
             <Route path="/sentinel" element={<PrivateRoute><AdminPage isDarkMode={isDarkMode} /></PrivateRoute>} />

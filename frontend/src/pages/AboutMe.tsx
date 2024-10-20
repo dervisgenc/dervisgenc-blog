@@ -1,3 +1,4 @@
+import Footer from "@/components/Footer";
 import Header from "@/components/Header";
 import { Button } from "@/components/ui/button"
 import { Linkedin, Mail, Phone, MapPin, Download, Globe, Github } from 'lucide-react'
@@ -7,7 +8,7 @@ export default function AboutMe() {
         <div className="bg-gray-900 text-gray-100">
             <div className="bg-gradient-to-br from-purple-900 via-blue-900 to-cyan-900  min-h-screen">
                 <Header isDarkMode={true} toggleDarkMode={function (): void {
-                    throw new Error("Function not implemented.");
+
                 }}>
 
                 </Header>
@@ -116,6 +117,8 @@ export default function AboutMe() {
                     </div>
                 </div>
             </section>
+
+            <Footer></Footer>
         </div>
     )
 }
