@@ -1,13 +1,15 @@
 import Footer from "./components/Footer";
 import Header from "./components/Header";
+import { useDarkMode } from "./components/context/DarkModeContext";
 
 interface LayoutProps {
     children: React.ReactNode;
-    isDarkMode: boolean;
-    toggleDarkMode: () => void;
+    hideHeader?: boolean;
 }
 
-export default function Layout({ children, isDarkMode, toggleDarkMode }: LayoutProps) {
+export default function Layout({ children }: LayoutProps) {
+    const { isDarkMode, toggleDarkMode } = useDarkMode();
+
     return (
         <div className={`min-h-screen flex flex-col ${isDarkMode ? 'dark-mode' : 'light-mode'}`}>
             {window.location.pathname !== '/about' && (
@@ -16,7 +18,7 @@ export default function Layout({ children, isDarkMode, toggleDarkMode }: LayoutP
                 </>
             )}
             <main className="flex-grow">{children}</main>
-            {window.location.pathname !== '/about' && <Footer />}
+            <Footer />
         </div>
     );
 }
