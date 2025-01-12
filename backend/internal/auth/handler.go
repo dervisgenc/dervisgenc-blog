@@ -1,11 +1,8 @@
 package auth
 
 import (
-	"errors"
 	"net/http"
 
-	myerr "github.com/dervisgenc/dervisgenc-blog/backend/pkg"
-	"github.com/dervisgenc/dervisgenc-blog/backend/pkg/models"
 	"github.com/gin-gonic/gin"
 )
 
@@ -34,17 +31,20 @@ func NewLoginHandler(service *LoginService) *LoginHandler {
 // @Failure 401 {object} models.ErrorResponse "Invalid username or password"
 // @Router /Login/login [post]
 func (h *LoginHandler) LoginHandler(c *gin.Context) {
-	var req LoginRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.Error(myerr.WithHTTPStatus(errors.New("invalid request"), http.StatusBadRequest))
+	var loginReq LoginRequest
+	if err := c.ShouldBindJSON(&loginReq); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 
-	token, err := h.service.AuthenticateAdmin(req.Username, req.Password)
+	token, err := h.service.AuthenticateAdmin(loginReq.Username, loginReq.Password)
 	if err != nil {
-		c.Error(myerr.WithHTTPStatus(err, http.StatusBadRequest))
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
 		return
 	}
 
-	c.JSON(http.StatusOK, models.TokenResponse{Token: token})
+	c.JSON(http.StatusOK, gin.H{
+		"token":   token,
+		"message": "Successfully logged in",
+	})
 }
