@@ -5,6 +5,8 @@ import { useNavigate } from 'react-router-dom';
 import ConfirmationModal from '../components/Modal';
 import axios from 'axios';
 import { useAuth } from '@/components/context/AuthContext';
+import { useDarkMode } from '@/components/context/DarkModeContext';
+import { getAuthHeaders } from '@/utils/auth';
 
 interface Post {
     id: string;
@@ -18,11 +20,8 @@ interface Post {
     is_active: boolean;
 }
 
-interface AdminPageProps {
-    isDarkMode: boolean;
-}
-
-export default function AdminPage({ isDarkMode }: AdminPageProps) {
+export default function AdminPage() {
+    const { isDarkMode } = useDarkMode();
     const [posts, setPosts] = useState<Post[]>([]);
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [isError, setIsError] = useState<string | null>(null);
@@ -38,24 +37,27 @@ export default function AdminPage({ isDarkMode }: AdminPageProps) {
         const fetchPosts = async () => {
             try {
                 setIsLoading(true);
+                const headers = getAuthHeaders();
                 const response = await axios.get('http://localhost:8080/admin/posts', {
-                    headers: {
-                        Authorization: `Bearer ${token}`
-                    }
+                    headers: headers
                 });
                 setPosts(response.data);
                 setIsLoading(false);
-            } catch (error) {
+            } catch (error: any) {
+                if (error.response?.status === 401) {
+                    navigate('/admin/login');
+                    return;
+                }
                 setIsError('Failed to fetch posts');
                 setIsLoading(false);
             }
         };
 
         fetchPosts();
-    }, [token]);
+    }, [navigate]);
 
     const handleEdit = (post: Post) => {
-        navigate(`/edit/${post.id}`);
+        navigate(`/sentinel/edit/${post.id}`);
     };
 
     const handleDelete = (id: string) => {
@@ -68,7 +70,6 @@ export default function AdminPage({ isDarkMode }: AdminPageProps) {
         setConfirmAction('hide');
         setSelectedPostId(id);
         setIsConfirmModalOpen(true);
-
     };
 
     const confirmActionHandler = async () => {
@@ -76,17 +77,29 @@ export default function AdminPage({ isDarkMode }: AdminPageProps) {
             const postToUpdate = posts.find(post => post.id === selectedPostId);
             if (!postToUpdate) return;
 
-            const updatedPost = { ...postToUpdate, is_active: !postToUpdate.is_active };
-
             try {
-                await axios.put(`http://localhost:8080/admin/posts/${selectedPostId}`, updatedPost, {
+                const formData = new FormData();
+                formData.append('title', postToUpdate.title);
+                formData.append('description', postToUpdate.summary);
+                formData.append('content', postToUpdate.content);
+                formData.append('readTime', postToUpdate.read_time.toString());
+                formData.append('isActive', (!postToUpdate.is_active).toString()); // Toggle the current state
+
+                await axios.put(`http://localhost:8080/admin/posts/${selectedPostId}`, formData, {
                     headers: {
-                        Authorization: `Bearer ${token}`
+                        Authorization: `Bearer ${token}`,
+                        'Content-Type': 'multipart/form-data',
                     }
                 });
-                // Başarılı olursa state'i güncelle
-                setPosts(posts.map(post => post.id === selectedPostId ? updatedPost : post));
+
+                // Update local state
+                setPosts(posts.map(post =>
+                    post.id === selectedPostId
+                        ? { ...post, is_active: !post.is_active }
+                        : post
+                ));
             } catch (error) {
+                console.error('Failed to update post visibility:', error);
                 setIsError('Failed to update post visibility');
             }
         } else if (selectedPostId && confirmAction === 'delete') {
@@ -114,7 +127,7 @@ export default function AdminPage({ isDarkMode }: AdminPageProps) {
     };
 
     const handleAdd = () => {
-        navigate('/add');
+        navigate('/sentinel/add');
     };
 
     return (
