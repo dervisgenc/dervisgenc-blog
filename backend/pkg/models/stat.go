@@ -4,15 +4,15 @@ import "time"
 
 // Stat struct
 type Stat struct {
-	ID        uint       `json:"id" example:"1"`                            // gorm.Model'den
-	CreatedAt time.Time  `json:"created_at" example:"2024-10-01T00:00:00Z"` // gorm.Model'den
-	UpdatedAt time.Time  `json:"updated_at" example:"2024-10-01T01:00:00Z"` // gorm.Model'den
-	DeletedAt *time.Time `json:"deleted_at,omitempty"`                      // gorm.Model'den
+	ID        uint       `json:"id" gorm:"primarykey"`
+	CreatedAt time.Time  `json:"created_at"`
+	UpdatedAt time.Time  `json:"updated_at"`
+	DeletedAt *time.Time `json:"deleted_at,omitempty" gorm:"index"`
 
-	PostID     int       `gorm:"type:integer;not null" json:"post_id" example:"1"`
-	Views      int       `gorm:"type:integer" json:"views" example:"100"`
-	Likes      int       `gorm:"type:integer" json:"likes" example:"25"`
-	Shares     int       `gorm:"type:integer" json:"shares" example:"10"`
-	LastViewed time.Time `gorm:"type:timestamp with time zone" json:"last_viewed" example:"2024-10-01T00:00:00Z"`
-	Post       Post      `gorm:"foreignKey:PostID" json:"post"`
+	PostID     int       `json:"post_id" gorm:"not null;uniqueIndex"`
+	Views      int       `json:"views" gorm:"default:0"`
+	Likes      int       `json:"likes" gorm:"default:0"`
+	Shares     int       `json:"shares" gorm:"default:0"`
+	LastViewed time.Time `json:"last_viewed"`
+	Post       Post      `json:"post" gorm:"foreignKey:PostID;constraint:OnDelete:CASCADE"`
 }
