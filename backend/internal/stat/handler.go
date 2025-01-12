@@ -2,6 +2,8 @@ package stat
 
 import (
 	"net/http"
+	"strconv"
+	"time"
 
 	myerr "github.com/dervisgenc/dervisgenc-blog/backend/pkg"
 	"github.com/gin-gonic/gin"
@@ -27,11 +29,20 @@ func NewStatHandler(statService *StatService) *StatHandler {
 // @Failure 500 {object} models.ErrorResponse "Internal Server Error"
 // @Router /posts/{id}/stats [get]
 func (h *StatHandler) GetPostStats(c *gin.Context) {
-	var postID uint = c.GetUint("id")
-
-	stats, err := h.statService.GetPostStats(postID)
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
-		c.Error(myerr.WithHTTPStatus(err, http.StatusInternalServerError))
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid post id"})
+		return
+	}
+
+	stats, err := h.statService.GetPostStats(uint(id))
+	if err != nil {
+		if err.Error() == "post not found" {
+			c.JSON(http.StatusNotFound, gin.H{"error": "post not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -99,4 +110,74 @@ func (h *StatHandler) GetPostsCreatedInLastDays(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, posts)
+}
+
+// GetDetailedStats godoc
+// @Summary Get detailed statistics
+// @Description Get comprehensive statistics about website traffic and engagement
+// @Tags Stats
+// @Accept json
+// @Produce json
+// @Param start_date query string false "Start date (YYYY-MM-DD)"
+// @Param end_date query string false "End date (YYYY-MM-DD)"
+// @Success 200 {object} models.StatsResponse
+// @Failure 500 {object} models.ErrorResponse
+// @Router /admin/stats/detailed [get]
+func (h *StatHandler) GetDetailedStats(c *gin.Context) {
+	startDate := time.Now().AddDate(0, -1, 0) // Default to last 30 days
+	endDate := time.Now()
+
+	if sd := c.Query("start_date"); sd != "" {
+		if parsed, err := time.Parse("2006-01-02", sd); err == nil {
+			startDate = parsed
+		}
+	}
+
+	if ed := c.Query("end_date"); ed != "" {
+		if parsed, err := time.Parse("2006-01-02", ed); err == nil {
+			endDate = parsed
+		}
+	}
+
+	stats, err := h.statService.GetVisitorStats(startDate, endDate)
+	if err != nil {
+		c.Error(myerr.WithHTTPStatus(err, http.StatusInternalServerError))
+		return
+	}
+
+	c.JSON(http.StatusOK, stats)
+}
+
+// GetDetailedPostStats godoc
+// @Summary Get detailed statistics for all posts
+// @Description Get comprehensive statistics for all posts including totals
+// @Tags Stats
+// @Accept json
+// @Produce json
+// @Success 200 {object} models.DetailedStatsResponse
+// @Failure 500 {object} models.ErrorResponse
+// @Router /admin/posts/detailed-stats [get]
+func (h *StatHandler) GetDetailedPostStats(c *gin.Context) {
+	stats, err := h.statService.GetDetailedPostStats()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, stats)
+}
+
+func (h *StatHandler) IncrementShare(c *gin.Context) {
+	postID := c.Param("id")
+	id, err := strconv.ParseUint(postID, 10, 64)
+	if err != nil {
+		c.JSON(400, gin.H{"error": "Invalid post ID"})
+		return
+	}
+
+	if err := h.statService.IncrementShareCount(uint(id)); err != nil {
+		c.JSON(500, gin.H{"error": "Failed to update share count"})
+		return
+	}
+
+	c.JSON(200, gin.H{"success": true})
 }

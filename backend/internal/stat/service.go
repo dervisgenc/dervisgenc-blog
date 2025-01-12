@@ -1,6 +1,10 @@
 package stat
 
-import "github.com/dervisgenc/dervisgenc-blog/backend/pkg/models"
+import (
+	"time"
+
+	"github.com/dervisgenc/dervisgenc-blog/backend/pkg/models"
+)
 
 type StatService struct {
 	statRepo StatRepository
@@ -10,7 +14,7 @@ func NewStatService(statRepo StatRepository) *StatService {
 	return &StatService{statRepo: statRepo}
 }
 
-func (s *StatService) GetPostStats(postID uint) (*models.Stat, error) {
+func (s *StatService) GetPostStats(postID uint) (*models.PostDetailedResponse, error) {
 	return s.statRepo.GetPostStats(postID)
 }
 
@@ -24,4 +28,15 @@ func (s *StatService) CountPosts() (int64, error) {
 
 func (s *StatService) GetPostsCreatedInLastDays(days int) ([]*models.Post, error) {
 	return s.statRepo.GetPostsCreatedInLastDays(days)
+}
+
+func (s *StatService) GetVisitorStats(startDate, endDate time.Time) (*models.StatsResponse, error) {
+	return s.statRepo.GetVisitorStats(startDate, endDate)
+}
+func (s *StatService) IncrementShareCount(postID uint) error {
+	return s.statRepo.IncrementShareCount(postID)
+}
+
+func (s *StatService) GetDetailedPostStats() (*models.DetailedStatsResponse, error) {
+	return s.statRepo.GetDetailedPostStats()
 }
