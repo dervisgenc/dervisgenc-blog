@@ -80,3 +80,66 @@
     background-color: #4a5568;
     /* Corresponds to bg-gray-600 in Tailwind */
 }
+
+/* Light theme */
+.quill-light .ql-toolbar {
+    background-color: #f3f4f6;
+    border-color: #e5e7eb;
+}
+
+.quill-light .ql-container {
+    background-color: #ffffff;
+    border-color: #e5e7eb;
+    color: #1f2937;
+    border-bottom-left-radius: 0.375rem;
+    border-bottom-right-radius: 0.375rem;
+    color: #e2e8f0;
+    min-height: 200px;
+}
+
+.quill-light .ql-editor {
+    color: #1f2937;
+}
+
+.quill-light .ql-stroke {
+    stroke: #4b5563;
+}
+
+.quill-light .ql-fill {
+    fill: #4b5563;
+}
+
+.quill-light .ql-picker {
+    color: #4b5563;
+}
+
+/* Dark theme */
+.quill-dark .ql-toolbar {
+    background-color: #374151;
+    border-color: #4b5563;
+}
+
+.quill-dark .ql-container {
+    background-color: #1a202c;
+    border-color: #4a5568;
+    border-bottom-left-radius: 0.375rem;
+    border-bottom-right-radius: 0.375rem;
+    color: #e2e8f0;
+    min-height: 200px;
+}
+
+.quill-dark .ql-editor {
+    color: #e5e7eb;
+}
+
+.quill-dark .ql-picker {
+    color: #e5e7eb;
+}
+
+.quill-dark .ql-stroke {
+    stroke: #e5e7eb;
+}
+
+.quill-dark .ql-fill {
+    fill: #e5e7eb;
+}

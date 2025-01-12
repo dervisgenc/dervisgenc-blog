@@ -98,10 +98,14 @@ nav button:hover {
 }
 
 .light-mode .search-box {
-  background-color: rgba(255, 255, 255, 0.3);
-  /* Daha fazla saydamlık */
-  color: #1f2937;
-  border-color: #d1d5db;
+  background-color: #f8fafc;
+  border-color: #e2e8f0;
+  color: #334155;
+}
+
+.light-mode .search-box:focus {
+  border-color: #a78bfa;
+  box-shadow: 0 0 0 3px rgba(167, 139, 250, 0.2);
 }
 
 /* Placeholder color changes */
@@ -127,12 +131,16 @@ nav button:hover {
   color: #f3f4f6;
 }
 
-.light-mode {
-  background-color: #edf1f1;
+light .light-mode {
+  background-color: #f3f4f6;
   color: #1f2937;
   /* Dark gray for text */
 }
 
+.light-mode {
+  background-color: #ffffff;
+  color: #334155;
+}
 
 /* Blog post grid */
 .blog-grid {
@@ -155,35 +163,39 @@ nav button:hover {
 
 /* Blog post card */
 .blog-card {
-
+  border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
-  transition: all 0.3s;
+  transition: all 0.2s ease-in-out;
 }
 
 .dark-mode .blog-card {
-  background-color: #1f2937;
+  background-color: rgba(31, 41, 55, 0.7);
+  border: 1px solid rgba(55, 65, 81, 0.5);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
 }
 
 .light-mode .blog-card {
   background-color: #ffffff;
-  border: px solid #acacac;
-  /* Light gray border */
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  /* Slightly stronger shadow */
-  border-radius: 8px;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
-
-.blog-card:hover {
-  box-shadow: 0 0 15px rgba(168, 85, 247, 0.7), 0 0 15px rgba(168, 85, 247, 0.7);
-  /* Opaklık arttırıldı */
+.light-mode .blog-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+  border-color: #a78bfa;
 }
 
+.dark-mode .blog-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 16px rgba(167, 139, 250, 0.15);
+  background-color: rgba(31, 41, 55, 0.9);
+}
 
 .blog-card img {
-  border-radius: 8px 8px 0 0;
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
 }
 
 .dark-mode .blog-card h2 {
@@ -191,16 +203,15 @@ nav button:hover {
 }
 
 .light-mode .blog-card h2 {
-  background-color: rgba(173, 216, 230, 0.9);
-  /* Açık mavi arka plan, pastel ton */
-  color: #003366;
-  /* Lacivert başlık rengi */
-
+  background-color: transparent;
+  color: #1e293b;
+  font-weight: 600;
 }
 
 .light-mode .blog-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 0 15px rgba(168, 85, 247, 0.7), 0 0 15px rgba(168, 85, 247, 0.7);
+  box-shadow: 0 8px 15px rgba(167, 139, 250, 0.2);
+  border-color: #a78bfa;
 }
 
 .dark-mode .blog-card p {
@@ -208,8 +219,7 @@ nav button:hover {
 }
 
 .light-mode .blog-card p {
-  color: #4b5563;
-  /* Medium gray */
+  color: #64748b;
 }
 
 
@@ -322,6 +332,24 @@ canvas {
 }
 
 @layer base {
+  :root {
+    --background: 210 40% 98%;
+    --foreground: 222 47% 11%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+    --primary: 262 83% 58%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222 47% 11%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 47%;
+    --accent: 210 40% 96%;
+    --accent-foreground: 222 47% 11%;
+    /* ...rest of the existing root variables... */
+  }
+
   * {
     @apply border-border;
   }
@@ -333,12 +361,10 @@ canvas {
 
 
 .light-mode footer {
-  background-color: #f3f4f6;
-  /* bg-gray-100 */
+  background-color: #f8fafc;
+  border-top: 1px solid #e2e8f0;
   color: #4b5563;
-  /* text-gray-600 */
   border-color: #e5e7eb;
-  /* border-gray-200 */
 }
 
 .dark-mode footer {
@@ -350,7 +376,6 @@ canvas {
   /* border-gray-800 */
 }
 
-/* Footer içindeki metin renkleri */
 .light-mode footer .footer-brand {
   color: #8b5cf6;
   /* text-purple-600 */
@@ -388,4 +413,69 @@ canvas {
   /* hover:bg-purple-700 */
   color: #ffffff;
   /* hover:text-white */
+}
+
+/* Home page container styles */
+.light-mode main {
+  background-color: #ffffff;
+}
+
+.dark-mode main {
+  background-color: #111827;
+}
+
+/* Search results text */
+.dark-mode .search-results {
+  color: #e5e7eb;
+}
+
+.light-mode .search-results {
+  color: #374151;
+}
+
+/* Pagination text */
+.dark-mode .pagination-text {
+  color: #9ca3af;
+}
+
+.light-mode .pagination-text {
+  color: #6b7280;
+}
+
+/* Tooltip styles */
+[data-tooltip-id] {
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+[data-tooltip-id]:hover {
+  opacity: 0.8;
+}
+
+/* Navigation link hover effects */
+nav a {
+  position: relative;
+  transition: transform 0.2s;
+}
+
+nav a:hover {
+  transform: translateY(-2px);
+}
+
+.light-mode nav a {
+  color: #334155;
+}
+
+.light-mode nav a:hover {
+  color: #7c3aed;
+}
+
+.light-mode .theme-toggle {
+  background-color: #f1f5f9;
+  color: #64748b;
+}
+
+.light-mode .theme-toggle:hover {
+  background-color: #e2e8f0;
+  color: #334155;
 }
