@@ -20,30 +20,40 @@ definitions:
       error:
         type: string
     type: object
+  models.PaginatedPosts:
+    properties:
+      current_page:
+        type: integer
+      page_size:
+        type: integer
+      posts:
+        items:
+          $ref: '#/definitions/models.Post'
+        type: array
+      total_pages:
+        type: integer
+      total_posts:
+        type: integer
+    type: object
   models.Post:
     properties:
       content:
         example: This is the content of the post
         type: string
       created_at:
-        description: gorm.Model'den
         example: "2024-10-01T00:00:00Z"
         type: string
       deleted_at:
-        description: gorm.Model'den
         type: string
       id:
-        description: gorm.Model'den
         example: 1
         type: integer
+      image_path:
+        type: string
       image_url:
-        example:
-        - http://example.com/image.jpg
-        items:
-          type: string
-        type: array
+        type: string
       is_active:
-        example: true
+        example: false
         type: boolean
       read_time:
         example: 5
@@ -52,13 +62,9 @@ definitions:
         example: This is a summary
         type: string
       title:
-        example:
-        - Sample Post
-        items:
-          type: string
-        type: array
+        example: Sample Post
+        type: string
       updated_at:
-        description: gorm.Model'den
         example: "2024-10-01T01:00:00Z"
         type: string
     type: object
@@ -94,8 +100,8 @@ definitions:
         example: 1
         type: integer
       last_viewed:
-        example: 5
-        type: integer
+        example: "2024-10-01T00:00:00Z"
+        type: string
       likes:
         example: 25
         type: integer
@@ -161,6 +167,27 @@ paths:
       summary: Login login
       tags:
       - Auth
+  /admin/posts:
+    get:
+      consumes:
+      - application/json
+      description: Fetch all posts in the system
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Post'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: Get all posts
+      tags:
+      - Posts
   /posts:
     get:
       consumes:
@@ -184,15 +211,31 @@ paths:
       - Posts
     post:
       consumes:
-      - application/json
-      description: Create a new post with the provided data
+      - multipart/form-data
+      description: Create a new post with the provided data and an optional image
       parameters:
-      - description: Post Data
-        in: body
-        name: post
+      - description: Post Title
+        in: formData
+        name: title
         required: true
-        schema:
-          $ref: '#/definitions/models.Post'
+        type: string
+      - description: Post Content
+        in: formData
+        name: content
+        required: true
+        type: string
+      - description: Post Description
+        in: formData
+        name: description
+        type: string
+      - description: Estimated Read Time
+        in: formData
+        name: readTime
+        type: string
+      - description: Cover Image
+        in: formData
+        name: image
+        type: file
       produces:
       - application/json
       responses:
@@ -375,6 +418,38 @@ paths:
       summary: Get the total number of posts
       tags:
       - Stats
+  /posts/paginated:
+    get:
+      consumes:
+      - application/json
+      description: Fetch posts with pagination
+      parameters:
+      - description: 'Page number (default: 1)'
+        in: query
+        name: page
+        type: integer
+      - description: 'Page size (default: 9)'
+        in: query
+        name: size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.PaginatedPosts'
+        "400":
+          description: Invalid parameters
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: Get paginated posts
+      tags:
+      - Posts
   /posts/recent/{days}:
     get:
       consumes:
@@ -406,6 +481,43 @@ paths:
       summary: Get posts created in the last X days
       tags:
       - Stats
+  /posts/search:
+    get:
+      consumes:
+      - application/json
+      description: Search posts by query string with pagination
+      parameters:
+      - description: Search query
+        in: query
+        name: q
+        required: true
+        type: string
+      - description: 'Page number (default: 1)'
+        in: query
+        name: page
+        type: integer
+      - description: 'Page size (default: 9)'
+        in: query
+        name: size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.PaginatedPosts'
+        "400":
+          description: Invalid parameters
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: Search posts with pagination
+      tags:
+      - Posts
   /posts/stats:
     get:
       consumes:

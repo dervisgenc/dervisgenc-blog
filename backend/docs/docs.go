@@ -61,6 +61,38 @@ const docTemplate = `{
                 }
             }
         },
+        "/admin/posts": {
+            "get": {
+                "description": "Fetch all posts in the system",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Posts"
+                ],
+                "summary": "Get all posts",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.Post"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/posts": {
             "get": {
                 "description": "Fetch all posts in the system",
@@ -93,9 +125,9 @@ const docTemplate = `{
                 }
             },
             "post": {
-                "description": "Create a new post with the provided data",
+                "description": "Create a new post with the provided data and an optional image",
                 "consumes": [
-                    "application/json"
+                    "multipart/form-data"
                 ],
                 "produces": [
                     "application/json"
@@ -106,13 +138,36 @@ const docTemplate = `{
                 "summary": "Create a new post",
                 "parameters": [
                     {
-                        "description": "Post Data",
-                        "name": "post",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/models.Post"
-                        }
+                        "type": "string",
+                        "description": "Post Title",
+                        "name": "title",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Post Content",
+                        "name": "content",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Post Description",
+                        "name": "description",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Estimated Read Time",
+                        "name": "readTime",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "file",
+                        "description": "Cover Image",
+                        "name": "image",
+                        "in": "formData"
                     }
                 ],
                 "responses": {
@@ -166,6 +221,55 @@ const docTemplate = `{
                 }
             }
         },
+        "/posts/paginated": {
+            "get": {
+                "description": "Fetch posts with pagination",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Posts"
+                ],
+                "summary": "Get paginated posts",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Page number (default: 1)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size (default: 9)",
+                        "name": "size",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.PaginatedPosts"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid parameters",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/posts/recent/{days}": {
             "get": {
                 "description": "Fetch posts that were created within the last X days",
@@ -200,6 +304,62 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Invalid days parameter",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/posts/search": {
+            "get": {
+                "description": "Search posts by query string with pagination",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Posts"
+                ],
+                "summary": "Search posts with pagination",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Search query",
+                        "name": "q",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page number (default: 1)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size (default: 9)",
+                        "name": "size",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.PaginatedPosts"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid parameters",
                         "schema": {
                             "$ref": "#/definitions/models.ErrorResponse"
                         }
@@ -497,6 +657,29 @@ const docTemplate = `{
                 }
             }
         },
+        "models.PaginatedPosts": {
+            "type": "object",
+            "properties": {
+                "current_page": {
+                    "type": "integer"
+                },
+                "page_size": {
+                    "type": "integer"
+                },
+                "posts": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.Post"
+                    }
+                },
+                "total_pages": {
+                    "type": "integer"
+                },
+                "total_posts": {
+                    "type": "integer"
+                }
+            }
+        },
         "models.Post": {
             "type": "object",
             "properties": {
@@ -505,31 +688,25 @@ const docTemplate = `{
                     "example": "This is the content of the post"
                 },
                 "created_at": {
-                    "description": "gorm.Model'den",
                     "type": "string",
                     "example": "2024-10-01T00:00:00Z"
                 },
                 "deleted_at": {
-                    "description": "gorm.Model'den",
                     "type": "string"
                 },
                 "id": {
-                    "description": "gorm.Model'den",
                     "type": "integer",
                     "example": 1
                 },
+                "image_path": {
+                    "type": "string"
+                },
                 "image_url": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    },
-                    "example": [
-                        "http://example.com/image.jpg"
-                    ]
+                    "type": "string"
                 },
                 "is_active": {
                     "type": "boolean",
-                    "example": true
+                    "example": false
                 },
                 "read_time": {
                     "type": "integer",
@@ -540,16 +717,10 @@ const docTemplate = `{
                     "example": "This is a summary"
                 },
                 "title": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    },
-                    "example": [
-                        "Sample Post"
-                    ]
+                    "type": "string",
+                    "example": "Sample Post"
                 },
                 "updated_at": {
-                    "description": "gorm.Model'den",
                     "type": "string",
                     "example": "2024-10-01T01:00:00Z"
                 }
@@ -598,8 +769,8 @@ const docTemplate = `{
                     "example": 1
                 },
                 "last_viewed": {
-                    "type": "integer",
-                    "example": 5
+                    "type": "string",
+                    "example": "2024-10-01T00:00:00Z"
                 },
                 "likes": {
                     "type": "integer",
