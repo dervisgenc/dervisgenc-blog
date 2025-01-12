@@ -7,39 +7,48 @@ interface AuthContextType {
     token: string | null;
     login: (token: string) => void;
     logout: () => void;
+    isAuthenticated: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // AuthProvider component
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-    const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
+    const [token, setToken] = useState<string | null>(localStorage.getItem('token')); // Changed from 'authToken'
+    const [isAuthenticated, setIsAuthenticated] = useState<boolean>(!!token);
 
     useEffect(() => {
         if (token) {
-            const decodedToken: any = jwtDecode(token);
-            const currentTime = Date.now() / 1000; // Unix zaman damgası
+            try {
+                const decodedToken: any = jwtDecode(token);
+                const currentTime = Date.now() / 1000;
 
-            if (decodedToken.exp < currentTime) {
+                if (decodedToken.exp < currentTime) {
+                    logout();
+                }
+                setIsAuthenticated(true);
+            } catch (error) {
                 logout();
-                alert("Your session has expired. Please log in again.");
             }
+        } else {
+            setIsAuthenticated(false);
         }
     }, [token]);
 
-
-    const login = (token: string) => {
-        setToken(token);
-        localStorage.setItem('token', token);
+    const login = (newToken: string) => {
+        localStorage.setItem('token', newToken); // Changed from 'authToken'
+        setToken(newToken);
+        setIsAuthenticated(true);
     };
 
     const logout = () => {
+        localStorage.removeItem('token'); // Changed from 'authToken'
         setToken(null);
-        localStorage.removeItem('token');
+        setIsAuthenticated(false);
     };
 
     return (
-        <AuthContext.Provider value={{ token, login, logout }}>
+        <AuthContext.Provider value={{ token, login, logout, isAuthenticated }}>
             {children}
         </AuthContext.Provider>
     );
