@@ -20,6 +20,19 @@ type Config struct {
 	DBPassword  string
 	DBName      string
 	DBPort      string
+	JWTSecret   []byte
+	Image       ImageConfig
+}
+
+type ImageConfig struct {
+	StoragePath  string
+	MaxSizeMB    int
+	AllowedTypes []string
+	BaseURL      string
+	Quality      int
+	MaxWidth     int
+	MaxHeight    int
+	StorageType  string // "local" or potentially "s3", "gcs" etc.
 }
 
 // Loads the configuration from environment variables end returns a Config struct
@@ -38,6 +51,17 @@ func LoadConfig() *Config {
 		DBPassword:  getEnv("DB_PASSWORD", "12461246"),
 		DBName:      getEnv("DB_NAME", "website"),
 		DBPort:      getEnv("DB_PORT", "5433"),
+		JWTSecret:   []byte(getEnv("JWT_SECRET", "secret-key")),
+		Image: ImageConfig{
+			StoragePath:  "uploads/images",
+			MaxSizeMB:    5,
+			AllowedTypes: []string{"image/jpeg", "image/png", "image/webp"},
+			BaseURL:      "http://localhost:8080/uploads/images",
+			Quality:      85,
+			MaxWidth:     1920,
+			MaxHeight:    1080,
+			StorageType:  "local", // Default storage type
+		},
 	}
 }
 
