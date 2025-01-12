@@ -7,7 +7,8 @@ interface BlogCardProps {
     readTime: string;
     image: string;
     postId: number;
-    isDarkMode: boolean;  // Yeni prop
+    isDarkMode: boolean;
+    likeCount: number;
 }
 
 const BlogCard: React.FC<BlogCardProps> = ({ title, summary, date, readTime, image, isDarkMode }) => {
@@ -42,6 +43,7 @@ const BlogCard: React.FC<BlogCardProps> = ({ title, summary, date, readTime, ima
                     <span>{formatDate(date)}</span>
                     <span>{readTime}</span>
                 </div>
+
             </div>
 
         </div>

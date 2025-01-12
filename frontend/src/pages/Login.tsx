@@ -3,7 +3,7 @@ import { Eye, EyeOff, Lock, User } from 'lucide-react'
 import axios from 'axios'; // Axios'u import ettik
 import "../login.css"
 import { useAuth } from '@/components/context/AuthContext'; // AuthContext'i import ettik
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 
 const MatrixRain = () => {
@@ -59,6 +59,7 @@ export default function LoginPage() {
     const [error, setError] = useState<string | null>(null);
     const { login } = useAuth();
     const navigate = useNavigate();
+    const location = useLocation();
 
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -72,8 +73,9 @@ export default function LoginPage() {
 
             const token = response.data.token;
             if (token) {
-                login(token); // Token varsa login yap
-                navigate('/sentinel');
+                login(token);
+                const from = location.state?.from || '/sentinel';
+                navigate(from);
             } else {
                 setError('Login failed: Invalid username or password');
             }

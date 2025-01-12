@@ -69,6 +69,10 @@ const SearchBox: React.FC<SearchBoxProps> = ({ isDarkMode, searchQuery, setSearc
         return () => window.removeEventListener('resize', updateSize);
     }, []);
 
+    const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setSearchQuery(e.target.value);
+    };
+
     return (
         <div className="search-container max-w-2xl mx-auto mt-8" ref={searchBoxRef}>
             <div className="relative h-10">
@@ -78,7 +82,7 @@ const SearchBox: React.FC<SearchBoxProps> = ({ isDarkMode, searchQuery, setSearc
                     placeholder="Search for cybersecurity articles..."
                     className={`search-box w-full ${isDarkMode ? 'placeholder-bright' : 'placeholder-dark'}`}
                     value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onChange={handleSearch}
                 />
             </div>
         </div>

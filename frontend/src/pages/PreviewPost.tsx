@@ -6,6 +6,7 @@ import { ThumbsUp, Share2, AlertTriangle } from 'lucide-react';
 import { useState, useEffect } from "react";
 import axios from 'axios';
 import { useAuth } from '@/components/context/AuthContext';
+import { useDarkMode } from '@/components/context/DarkModeContext';
 
 interface Post {
     id: number;
@@ -17,7 +18,12 @@ interface Post {
     shares: number;
 }
 
+
+
+
+
 export default function PostPage() {
+    const { isDarkMode } = useDarkMode();
     const { id } = useParams();
     const [post, setPost] = useState<Post | null>(null);
     const [error, setError] = useState<string | null>(null);
@@ -48,13 +54,13 @@ export default function PostPage() {
 
     if (error) {
         return (
-            <div className="min-h-screen bg-gray-900 text-gray-100 p-4 flex flex-col items-center justify-center">
+            <div className={`min-h-screen p-4 flex flex-col items-center justify-center ${isDarkMode ? 'bg-gray-900 text-gray-100' : 'bg-gray-50 text-gray-900'}`}>
                 <AlertTriangle size={72} className="text-red-500 mb-4" />
                 <h1 className="text-3xl font-bold mb-4">Post Not Found</h1>
-                <p className="text-lg text-gray-400 mb-8">Post you are searching for not found or an error occured</p>
+                <p className={`text-lg mb-8 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Post you are searching for not found or an error occured</p>
                 <Button
                     variant="outline"
-                    className="bg-gray-800 text-gray-100 border-gray-700 hover:bg-gray-700 transition-all duration-300 ease-in-out"
+                    className={`transition-all duration-300 ease-in-out ${isDarkMode ? 'bg-gray-800 text-gray-100 border-gray-700 hover:bg-gray-700' : 'bg-white text-gray-900 border-gray-200 hover:bg-gray-100'}`}
                     onClick={() => window.location.href = '/'}
                 >
                     Return to Home Page
@@ -87,8 +93,8 @@ export default function PostPage() {
     const encodedImageUrl = encodeURI(post.image_url);
 
     return (
-        <div className="min-h-screen bg-gray-900 text-gray-100 p-4 md:p-8">
-            <Card className="max-w-4xl mx-auto bg-gray-800 border-gray-700 overflow-hidden">
+        <div className={`min-h-screen p-4 md:p-8 ${isDarkMode ? 'bg-gray-900 text-gray-100' : 'bg-gray-50 text-gray-900'}`}>
+            <Card className={`max-w-4xl mx-auto overflow-hidden ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
                 <div className="relative h-64 md:h-96">
                     <img
                         src={encodedImageUrl}
@@ -96,7 +102,7 @@ export default function PostPage() {
                         className="absolute inset-0 w-full h-full object-cover"
                     />
 
-                    <div className="absolute inset-0 bg-gradient-to-t from-gray-900 to-transparent" />
+                    <div className={`absolute inset-0 bg-gradient-to-t ${isDarkMode ? 'from-gray-900' : 'from-gray-700'} to-transparent`} />
                     <h1 className="absolute bottom-4 left-4 right-4 text-2xl md:text-4xl font-bold text-white">
                         {post.title}
                     </h1>
@@ -104,10 +110,10 @@ export default function PostPage() {
 
                 {/* Summary added below the title */}
                 <CardContent className="p-6">
-                    <p className="text-gray-400 mb-6 italic">{post.summary}</p> {/* Summary with a different style */}
-                    <div className="prose prose-invert max-w-none">
+                    <p className={`mb-6 italic ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>{post.summary}</p>
+                    <div className={`prose max-w-none ${isDarkMode ? 'prose-invert' : ''}`}>
                         <div
-                            className="text-gray-300 leading-relaxed mb-4"
+                            className={`leading-relaxed mb-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}
                             dangerouslySetInnerHTML={{ __html: sanitizedContent }}
                         />
                     </div>
@@ -118,7 +124,10 @@ export default function PostPage() {
                 <div className="flex space-x-4">
                     <Button
                         variant="outline"
-                        className={`bg-gray-800 text-gray-100 border-gray-700 hover:bg-gray-700 transition-all duration-300 ease-in-out ${isLiked ? 'bg-purple-600 hover:bg-purple-700' : ''}`}
+                        className={`transition-all duration-300 ease-in-out ${isDarkMode
+                            ? 'bg-gray-800 text-gray-100 border-gray-700 hover:bg-gray-700'
+                            : 'bg-white text-gray-900 border-gray-200 hover:bg-gray-100'
+                            } ${isLiked ? 'bg-purple-600 hover:bg-purple-700 text-white' : ''}`}
                         onClick={handleLike}
                     >
                         <ThumbsUp className={`mr-2 h-4 w-4 ${isLiked ? 'animate-pulse' : ''}`} />
@@ -126,14 +135,17 @@ export default function PostPage() {
                     </Button>
                     <Button
                         variant="outline"
-                        className={`bg-gray-800 text-gray-100 border-gray-700 hover:bg-gray-700 transition-all duration-300 ease-in-out ${isShared ? 'bg-cyan-600 hover:bg-cyan-700' : ''}`}
+                        className={`transition-all duration-300 ease-in-out ${isDarkMode
+                            ? 'bg-gray-800 text-gray-100 border-gray-700 hover:bg-gray-700'
+                            : 'bg-white text-gray-900 border-gray-200 hover:bg-gray-100'
+                            } ${isShared ? 'bg-cyan-600 hover:bg-cyan-700 text-white' : ''}`}
                         onClick={handleShare}
                     >
                         <Share2 className={`mr-2 h-4 w-4 ${isShared ? 'animate-spin' : ''}`} />
                         Share ({shareCount})
                     </Button>
                 </div>
-                <div className="text-sm text-gray-400">
+                <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                     Reading time: 5 min
                 </div>
             </div>
