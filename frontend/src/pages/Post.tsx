@@ -5,36 +5,41 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ThumbsUp, Share2, AlertTriangle } from 'lucide-react';
 import { useState, useEffect } from "react";
 import axios from 'axios';
+import { useDarkMode } from '@/components/context/DarkModeContext';
+import { PostDetail } from '@/types';
+import { useLike } from '@/hooks/useLike';
+import { useToast } from "@/hooks/use-toast";
+import { shareContent } from "@/utils/share";
 
-interface Post {
-    id: number;
-    title: string;
-    summary: string;
-    content: string;
-    image_url: string;
-    likes: number;
-    shares: number;
+interface ExtendedPostDetail extends PostDetail {
+    likes?: number;
+    shares?: number;
 }
 
-interface PostPageProps {
-    isDarkMode: boolean;  // Add the isDarkMode prop
-}
-
-export default function PostPage({ isDarkMode }: PostPageProps) {  // Receive the prop
+export default function PostPage() {
+    const { isDarkMode } = useDarkMode();
     const { id } = useParams();
-    const [post, setPost] = useState<Post | null>(null);
+    const [post, setPost] = useState<ExtendedPostDetail | null>(null);
     const [error, setError] = useState<string | null>(null);
-    const [likeCount, setLikeCount] = useState(0);
-    const [shareCount, setShareCount] = useState(0);
-    const [isLiked, setIsLiked] = useState(false);
+    const [, setShareCount] = useState(0);
     const [isShared, setIsShared] = useState(false);
+    const { toast } = useToast();
+
+    const {
+        likeCount,
+        isLiked,
+        isLoading,
+        toggleLike
+    } = useLike({
+        postId: Number(id),
+        initialLikeCount: post?.like_count ?? 0
+    });
 
     useEffect(() => {
         const fetchPost = async () => {
             try {
                 const response = await axios.get(`http://localhost:8080/posts/${id}`);
                 setPost(response.data);
-                setLikeCount(response.data.likes);
                 setShareCount(response.data.shares);
             } catch (err) {
                 setError("Failed to fetch post");
@@ -62,22 +67,31 @@ export default function PostPage({ isDarkMode }: PostPageProps) {  // Receive th
     }
 
     if (!post) {
-        return <p>Loading...</p>;
+        return (
+            <div className="flex items-center justify-center min-h-screen">
+                <div className="animate-pulse flex flex-col items-center">
+                    <div className="w-12 h-12 rounded-full bg-gray-300 dark:bg-gray-600 mb-4"></div>
+                    <div className="text-gray-500 dark:text-gray-400">Loading...</div>
+                </div>
+            </div>
+        );
     }
 
-    const handleLike = () => {
-        if (isLiked) {
-            setLikeCount(likeCount - 1);
-        } else {
-            setLikeCount(likeCount + 1);
-        }
-        setIsLiked(!isLiked);
-    };
-
-    const handleShare = () => {
-        setShareCount(shareCount + 1);
+    const handleShare = async () => {
         setIsShared(true);
-        setTimeout(() => setIsShared(false), 2000);
+        const result = await shareContent(
+            post.title,
+            post.summary || 'Check out this blog post!',
+            window.location.href
+        );
+
+        toast({
+            title: result.success ? "Success!" : "Notice",
+            description: result.message,
+            variant: result.success ? "default" : "destructive",
+        });
+
+        setTimeout(() => setIsShared(false), 1000);
     };
 
     // Sanitize the HTML content from the post
@@ -115,29 +129,54 @@ export default function PostPage({ isDarkMode }: PostPageProps) {  // Receive th
                 </CardContent>
             </Card>
 
-            <div className="max-w-4xl mx-auto mt-8 flex justify-between items-center">
-                <div className="flex space-x-4">
+            <div className="max-w-4xl mx-auto mt-6 flex justify-between items-center px-4">
+                <div className="flex items-center gap-2">
                     <Button
-                        variant="outline"
-                        className={`text-gray-800 dark:text-gray-100 border-gray-300 dark:border-gray-700 hover:bg-gray-300 dark:hover:bg-gray-700 transition-all duration-300 ease-in-out ${isLiked ? 'bg-purple-600 hover:bg-purple-700' : ''}`}
-                        onClick={handleLike}
+                        size="sm"
+                        variant="ghost"
+                        className={`
+                            relative group flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm
+                            transition-all duration-300 ease-in-out
+                            ${isDarkMode
+                                ? 'hover:bg-gray-800 focus:bg-gray-800'
+                                : 'hover:bg-gray-100 focus:bg-gray-100'
+                            }
+                            ${isLiked
+                                ? 'text-purple-500 dark:text-purple-400'
+                                : 'text-gray-600 dark:text-gray-400'
+                            }
+                        `}
+                        onClick={toggleLike}
+                        disabled={isLoading}
                     >
-                        <ThumbsUp className={`mr-2 h-4 w-4 ${isLiked ? 'animate-pulse' : ''}`} />
-                        Like ({likeCount})
+                        <ThumbsUp className={`h-3.5 w-3.5 ${isLiked ? 'fill-current' : ''}`} />
+                        <span className="text-xs font-medium">{likeCount}</span>
                     </Button>
 
                     <Button
-                        variant="outline"
-                        className={`text-gray-800 dark:text-gray-100 border-gray-300 dark:border-gray-700 hover:bg-gray-300 dark:hover:bg-gray-700 transition-all duration-300 ease-in-out ${isShared ? 'bg-cyan-600 hover:bg-cyan-700' : ''}`}
+                        size="sm"
+                        variant="ghost"
+                        className={`
+                            relative group flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm
+                            transition-all duration-300 ease-in-out
+                            ${isDarkMode
+                                ? 'hover:bg-gray-800 focus:bg-gray-800'
+                                : 'hover:bg-gray-100 focus:bg-gray-100'
+                            }
+                            ${isShared
+                                ? 'text-cyan-500 dark:text-cyan-400'
+                                : 'text-gray-600 dark:text-gray-400'
+                            }
+                        `}
                         onClick={handleShare}
                     >
-                        <Share2 className={`mr-2 h-4 w-4 ${isShared ? 'animate-spin' : ''}`} />
-                        Share ({shareCount})
+                        <Share2 className="h-3.5 w-3.5" />
+                        <span className="text-xs font-medium md:inline-block">Share</span>
                     </Button>
-
                 </div>
-                <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                    Reading time: 5 min
+
+                <div className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                    {post.read_time} min read
                 </div>
             </div>
         </div>
