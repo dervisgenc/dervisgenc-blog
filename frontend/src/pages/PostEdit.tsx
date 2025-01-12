@@ -1,3 +1,4 @@
+// PostEditPage.tsx
 import { useParams, useNavigate } from 'react-router-dom';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
@@ -5,48 +6,26 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuth } from '@/components/context/AuthContext';
 import '../quill-custom.css';
-
-interface Post {
-    id: string;
-    title: string;
-    summary: string;
-    content: string;
-    created_at: string;
-    read_time: number;
-    image_url: string;
-    is_active: boolean;
-}
-
-// Custom toolbar options for the Quill editor
-const modules = {
-    toolbar: [
-        [{ 'header': '1' }, { 'header': '2' }, { 'font': [] }],
-        [{ 'list': 'ordered' }, { 'list': 'bullet' }],
-        ['bold', 'italic', 'underline', 'blockquote', 'code-block'],
-        ['link', 'image'],
-        [{ 'align': [] }],
-        ['clean']  // Removes formatting
-    ],
-};
-
-// Allowing specific formats from the Quill documentation
-const formats = [
-    'header', 'font', 'bold', 'italic', 'underline', 'list', 'bullet',
-    'blockquote', 'code-block', 'link', 'image', 'align'
-];
+import { useDarkMode } from '@/components/context/DarkModeContext';
+import { PostDetail } from '@/types';
+import { quillModules, quillFormats } from '@/utils/quillConfig';
+import { toast } from 'react-hot-toast';
 
 export default function PostEditPage() {
+    const { isDarkMode } = useDarkMode();
     const { id } = useParams();
     const navigate = useNavigate();
     const { token } = useAuth();
 
-    const [editingPost, setEditingPost] = useState<Post | null>(null);
+    const [editingPost, setEditingPost] = useState<PostDetail | null>(null);
     const [newImage, setNewImage] = useState<File | null>(null);
-    const [initialPost, setInitialPost] = useState<Post | null>(null);
+    const [initialPost, setInitialPost] = useState<PostDetail | null>(null);
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
+    const [isSaving, setIsSaving] = useState(false);
+    const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
-    // Postu backend'den çekme
+    // Fetch the post from backend
     useEffect(() => {
         const fetchPost = async () => {
             try {
@@ -56,143 +35,249 @@ export default function PostEditPage() {
                     },
                 });
 
-                // Gelen post verilerini hem `initialPost` hem de `editingPost`'a atıyoruz
                 const postData = response.data;
                 setInitialPost(postData);
-                setEditingPost(postData); // Tüm alanların aynı olmasını sağlıyoruz
-                setIsLoading(false);
+                setEditingPost(postData); // Ensure all fields are the same
             } catch (err) {
-                setError('Failed to fetch post');
+                if (axios.isAxiosError(err) && err.response?.status === 404) {
+                    navigate('/404', { replace: true });
+                } else {
+                    setError('Failed to fetch post');
+                    toast.error('Failed to load post');
+                }
+            } finally {
                 setIsLoading(false);
             }
         };
         fetchPost();
-    }, [id, token]);
+    }, [id, token, navigate]);
 
+    useEffect(() => {
+        if (initialPost && editingPost) {
+            const hasChanges = JSON.stringify(initialPost) !== JSON.stringify(editingPost) || newImage !== null;
+            setHasUnsavedChanges(hasChanges);
+        }
+    }, [initialPost, editingPost, newImage]);
 
     if (isLoading) return <p>Loading...</p>;
     if (error) return <p>{error}</p>;
     if (!editingPost) return <p>Post not found</p>;
 
-    // Kapak resmi değiştirme işlemi
+    // Handle image change
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
             setNewImage(e.target.files[0]);
         }
     };
 
-    const handleSave = async () => {
-        try {
-            const postUpdateData: Partial<Post> = {
-                id: editingPost?.id || initialPost?.id,  // ID'yi koruyoruz
-                is_active: initialPost?.is_active,
-                created_at: initialPost?.created_at,
-                image_url: initialPost?.image_url,
-                title: editingPost?.title !== initialPost?.title ? editingPost?.title : initialPost?.title,
-                summary: editingPost?.summary !== initialPost?.summary ? editingPost?.summary : initialPost?.summary,
-                content: editingPost?.content !== initialPost?.content ? editingPost?.content : initialPost?.content,
-                read_time: editingPost?.read_time !== initialPost?.read_time ? editingPost?.read_time : initialPost?.read_time,
-            };
+    const validateForm = () => {
+        if (!editingPost) return false;
 
-            // Eğer herhangi bir değişiklik varsa gönder
-            if (Object.keys(postUpdateData).length > 0) {
-                await axios.put(`http://localhost:8080/admin/posts/${editingPost?.id}`, postUpdateData, {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
-                });
+        if (!editingPost.title.trim()) {
+            toast.error('Title is required');
+            return false;
+        }
+        if (!editingPost.content.trim()) {
+            toast.error('Content is required');
+            return false;
+        }
+        if (!editingPost.summary.trim()) {
+            toast.error('Summary is required');
+            return false;
+        }
+        if (editingPost.read_time <= 0) {
+            toast.error('Read time must be positive');
+            return false;
+        }
+        return true;
+    };
+
+    const handleSave = async () => {
+        if (!editingPost || !initialPost) return;
+        if (!validateForm()) return;
+
+        setIsSaving(true);
+        const previousPost = { ...editingPost };
+
+        // Create optimistic update
+        const optimisticPost = {
+            ...editingPost,
+            updated_at: new Date().toISOString()
+        };
+        setEditingPost(optimisticPost);
+
+        try {
+            const formData = new FormData();
+
+            // Add all post data to formData
+            formData.append('title', editingPost.title);
+            formData.append('description', editingPost.summary);
+            formData.append('content', editingPost.content);
+            formData.append('readTime', editingPost.read_time.toString());
+            formData.append('isActive', editingPost.is_active.toString());
+
+            // If there's a new image, add it to formData
+            if (newImage) {
+                formData.append('image', newImage);
+            } else {
+                formData.append('image_url', initialPost.image_url);
             }
 
-            // Yeni kapak resmi seçildiyse onu da yükle
-            if (newImage) {
-                const formData = new FormData();
-                formData.append('image', newImage);
-
-                const uploadResponse = await axios.post(`http://localhost:8080/admin/upload`, formData, {
+            const savePromise = axios.put(
+                `http://localhost:8080/admin/posts/${editingPost.id}`,
+                formData,
+                {
                     headers: {
-                        Authorization: `Bearer ${token}`,
+                        'Authorization': `Bearer ${token}`,
                         'Content-Type': 'multipart/form-data',
                     },
-                });
+                }
+            );
 
-                // Yüklenen yeni resmin URL'sini güncelle
-                const updatedPost = {
-                    ...editingPost,
-                    image_url: uploadResponse.data.imageUrl,
-                };
+            toast.promise(savePromise, {
+                loading: 'Saving changes...',
+                success: 'Post updated successfully!',
+                error: 'Failed to update post'
+            });
 
-                await axios.put(`http://localhost:8080/admin/posts/${editingPost?.id}`, updatedPost, {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
-                });
+            const response = await savePromise;
+
+            if (response.status === 200) {
+                setHasUnsavedChanges(false);
+                setInitialPost(response.data);
+                navigate('/sentinel');
             }
-
-            navigate('/sentinel'); // Admin sayfasına dön
         } catch (err) {
-            console.error('Failed to update post', err);
+            console.error('Failed to update post:', err);
+            // Revert optimistic update
+            setEditingPost(previousPost);
+        } finally {
+            setIsSaving(false);
         }
     };
 
+    // Confirm before leaving if there are unsaved changes
+    useEffect(() => {
+        const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+            if (hasUnsavedChanges) {
+                e.preventDefault();
+                e.returnValue = '';
+            }
+        };
 
+        window.addEventListener('beforeunload', handleBeforeUnload);
+        return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    }, [hasUnsavedChanges]);
 
     return (
-        <div className="min-h-screen bg-gray-900 text-gray-100 p-8">
+        <div className={`min-h-screen p-8 ${isDarkMode ? 'bg-gray-900 text-gray-100' : 'bg-gray-50 text-gray-900'}`}>
             <h1 className="text-4xl font-bold mb-8 text-center bg-clip-text text-transparent bg-gradient-to-r from-purple-400 via-pink-500 to-red-500">
                 Edit Post
             </h1>
-            <div className="max-w-4xl mx-auto bg-gray-800 p-6 rounded-lg shadow-lg">
+            <div className={`max-w-4xl mx-auto p-6 rounded-lg shadow-lg ${isDarkMode ? 'bg-gray-800' : 'bg-white'}`}>
                 <input
                     type="text"
                     value={editingPost.title}
                     onChange={e => setEditingPost({ ...editingPost, title: e.target.value })}
-                    className="w-full p-2 mb-4 bg-gray-700 text-white rounded"
+                    className={`w-full p-2 mb-4 rounded ${isDarkMode ? 'bg-gray-700 text-white' : 'bg-gray-100 text-gray-900'}`}
                     placeholder="Title"
                 />
                 <textarea
                     value={editingPost.summary}
                     onChange={e => setEditingPost({ ...editingPost, summary: e.target.value })}
-                    className="w-full p-2 mb-4 bg-gray-700 text-white rounded"
-                    placeholder="summary"
+                    className={`w-full p-2 mb-4 rounded ${isDarkMode ? 'bg-gray-700 text-white' : 'bg-gray-100 text-gray-900'}`}
+                    placeholder="Summary"
                     rows={5}
                 />
-                <ReactQuill
-                    theme="snow"
-                    value={editingPost.content}
-                    onChange={content => setEditingPost({ ...editingPost, content })}
-                    modules={modules}
-                    formats={formats}
-                    className="quill-editor mb-4"
-                />
+                <div className={`mb-4 ${isDarkMode ? 'quill-dark' : 'quill-light'}`}>
+                    <ReactQuill
+                        theme="snow"
+                        value={editingPost.content}
+                        onChange={content => setEditingPost({ ...editingPost, content })}
+                        modules={quillModules}
+                        formats={quillFormats}
+                        className="min-h-[200px]"
+                    />
+                </div>
                 <input
                     type="number"
                     value={editingPost.read_time}
                     onChange={e => setEditingPost({ ...editingPost, read_time: parseInt(e.target.value) })}
-                    className="w-full p-2 mb-4 bg-gray-700 text-white rounded"
+                    className={`w-full p-2 mb-4 rounded ${isDarkMode ? 'bg-gray-700 text-white' : 'bg-gray-100 text-gray-900'}`}
                     placeholder="Read Time"
                 />
 
-                {/* Kapak Resmi Yükleme */}
+                {/* Cover Image Upload */}
                 <div className="mb-4">
-                    <label className="block text-white mb-2">Change Cover Image</label>
-                    <input type="file" onChange={handleImageChange} className="w-full p-2 bg-gray-700 text-white rounded" />
+                    <label className={`block mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                        Change Cover Image
+                    </label>
+                    <input
+                        type="file"
+                        onChange={handleImageChange}
+                        className={`w-full p-2 rounded ${isDarkMode ? 'bg-gray-700 text-white file:bg-gray-600 file:text-white file:border-gray-600 file:rounded-md file:px-4  file:mr-4 file:hover:bg-gray-700 file:transition-colors' : 'bg-gray-100 text-gray-900 file:bg-gray-200 file:text-gray-900 file:border-gray-200 file:rounded-md file:px-4  file:mr-4 file:hover:bg-gray-300 file:transition-colors'}`}
+                        accept="image/*"
+                    />
                 </div>
 
-                <div className="flex justify-end space-x-2">
-                    <button
-                        onClick={() => navigate('/sentinel')}
-                        className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors"
-                    >
-                        Cancel
-                    </button>
-                    <button
-                        onClick={handleSave}
-                        className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
-                    >
-                        Save
-                    </button>
+                {/* Add current image preview */}
+                {(editingPost?.image_url || initialPost?.image_url) && (
+                    <div className="mb-4">
+                        <p className="mb-2">Current Image:</p>
+                        <img
+                            src={editingPost?.image_url || initialPost?.image_url}
+                            alt="Current post image"
+                            className="max-w-md h-auto rounded-lg shadow-lg"
+                        />
+                    </div>
+                )}
+
+                {/* Preview for new image */}
+                {newImage && (
+                    <div className="mb-4">
+                        <p className="mb-2">New Image Preview:</p>
+                        <img
+                            src={URL.createObjectURL(newImage)}
+                            alt="New image preview"
+                            className="max-w-md h-auto rounded-lg shadow-lg"
+                        />
+                    </div>
+                )}
+
+                <div className="flex justify-between items-center mt-4">
+                    {hasUnsavedChanges && (
+                        <span className="text-yellow-500">
+                            You have unsaved changes
+                        </span>
+                    )}
+                    <div className="flex space-x-2">
+                        <button
+                            onClick={() => {
+                                if (hasUnsavedChanges) {
+                                    if (window.confirm('You have unsaved changes. Are you sure you want to leave?')) {
+                                        navigate('/sentinel');
+                                    }
+                                } else {
+                                    navigate('/sentinel');
+                                }
+                            }}
+                            className={`px-4 py-2 rounded transition-colors ${isDarkMode ? 'bg-gray-600 text-white hover:bg-gray-700' : 'bg-gray-200 text-gray-800 hover:bg-gray-300'
+                                }`}
+                            disabled={isSaving}
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            onClick={handleSave}
+                            disabled={isSaving || !hasUnsavedChanges}
+                            className={`px-4 py-2 rounded transition-colors ${isDarkMode ? 'bg-green-600 text-white hover:bg-green-700' : 'bg-green-500 text-white hover:bg-green-600'
+                                } disabled:opacity-50`}
+                        >
+                            {isSaving ? 'Saving...' : 'Save Changes'}
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
     );
-}
+};
