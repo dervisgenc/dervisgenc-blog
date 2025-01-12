@@ -1,115 +1,134 @@
-import Footer from "@/components/Footer";
 import Header from "@/components/Header";
-import { Button } from "@/components/ui/button"
-import { Linkedin, Mail, Phone, MapPin, Download, Globe, Github } from 'lucide-react'
+import { useDarkMode } from "@/components/context/DarkModeContext";
+import { GitHubLogoIcon, InstagramLogoIcon, TwitterLogoIcon } from "@radix-ui/react-icons";
+import { Linkedin, Mail, MapPin, Globe, } from "lucide-react";
 
 export default function AboutMe() {
+    const { isDarkMode, toggleDarkMode } = useDarkMode();
+
     return (
-        <div className="bg-gray-900 text-gray-100">
-            <div className="bg-gradient-to-br from-purple-900 via-blue-900 to-cyan-900  min-h-screen">
-                <Header isDarkMode={true} toggleDarkMode={function (): void {
+        <div className={isDarkMode ? 'bg-gray-900 text-gray-100' : 'bg-gray-50 text-gray-900'}>
+            <div className={`${isDarkMode
+                ? 'bg-gradient-to-br from-purple-900 via-blue-900 to-cyan-900'
+                : 'bg-gradient-to-br from-purple-100 via-blue-100 to-cyan-100'
+                } min-h-screen`}>
 
-                }}>
-
-                </Header>
+                <div className="p-4">
+                    <Header isDarkMode={isDarkMode} toggleDarkMode={toggleDarkMode} />
+                </div>
 
                 <div className="flex items-center min-h-[calc(100vh-100px)] justify-center p-4">
-                    <div className="container max-w-6xl mx-auto bg-gray-800 bg-opacity-50 backdrop-blur-sm rounded-xl shadow-2xl overflow-hidden">
+                    <div className={`container max-w-6xl mx-auto ${isDarkMode
+                        ? 'bg-gray-800 bg-opacity-50'
+                        : 'bg-white bg-opacity-75'
+                        } backdrop-blur-sm rounded-xl shadow-2xl overflow-hidden`}>
                         <div className="grid md:grid-cols-2 gap-8 p-8">
                             <div className="space-y-6">
                                 <div className="w-48 h-48 rounded-full overflow-hidden border-4 border-cyan-400 mx-auto md:mx-0">
-                                    <img src="/placeholder.svg?height=200&width=200" alt="Derviş Genç" className="w-full h-full object-cover" />
+                                    <img src="/portre.jpg" alt="Derviş Genç" className="w-full h-full object-cover" />
                                 </div>
                                 <h1 className="text-5xl md:text-6xl font-bold mb-6 animate-text bg-gradient-to-r from-teal-500 via-purple-500 to-orange-500 bg-clip-text text-transparent text-center md:text-left">
                                     Derviş Genç
                                 </h1>
-                                <p className="text-xl md:text-2xl leading-relaxed mb-6 text-gray-100">
-                                    Aspiring Computer Engineer with a passion for cybersecurity and software development. Currently honing my skills at Istanbul Technical University, I'm on a mission to push the boundaries of technology and secure the digital frontier.
+                                <p className={`text-xl md:text-2xl leading-relaxed mb-6 ${isDarkMode ? 'text-gray-100' : 'text-gray-700'
+                                    }`}>
+                                    Senior Computer Engineering student at Istanbul Technical University with expertise in C/C++ and Go, and a growing interest in Python, React, and C#. Passionate about cybersecurity, software development, and Linux systems, with a focus on network/web security and malware analysis.
                                 </p>
                                 <div className="flex flex-wrap gap-4">
-                                    {['C/C++', 'C#', 'Python', 'Java', 'Linux', 'Network Security'].map((skill) => (
-                                        <SkillBadge key={skill}>{skill}</SkillBadge>
+                                    {['C/C++', 'Go', 'Python', 'React', 'Linux', 'Cybersecurity'].map((skill) => (
+                                        <SkillBadge key={skill} isDarkMode={isDarkMode}>{skill}</SkillBadge>
                                     ))}
                                 </div>
                             </div>
-                            <div className="space-y-8">
-                                <div className="bg-gray-700 bg-opacity-50 p-6 rounded-lg">
-                                    <h2 className="text-2xl font-bold mb-4 text-cyan-400">Connect with Me</h2>
+                            <div className="space-y-8 flex items-center justify-center">
+                                <div className={`${isDarkMode
+                                    ? 'bg-gray-700 bg-opacity-50'
+                                    : 'bg-gray-100 bg-opacity-50'
+                                    } p-6 rounded-lg w-full`}>
+                                    <h2 className="text-2xl font-bold mb-4 text-cyan-400 text-center">Connect with Me</h2>
                                     <div className="space-y-4">
-                                        <ContactItem icon={<Mail className="text-purple-400" />} text="0dervisgenc@gmail.com" href="mailto:0dervisgenc@gmail.com" />
-                                        <ContactItem icon={<Phone className="text-green-400" />} text="+905527940713" href="tel:+905527940713" />
-                                        <ContactItem icon={<MapPin className="text-red-400" />} text="Sariyer/Istanbul Turkey" href={undefined} />
-                                        <ContactItem icon={<Github className="text-gray-400" />} text="github.com/dervisgenc" href="https://github.com/dervisgenc" />
-                                        <ContactItem icon={<Linkedin className="text-blue-400" />} text="linkedin.com/in/dervisgenc" href="https://www.linkedin.com/in/dervisgenc/" />
-                                        <ContactItem icon={<Globe className="text-cyan-400" />} text="dervisgenc.com" href="https://www.dervisgenc.com" />
+                                        <ContactItem isDarkMode={isDarkMode} icon={<Mail className="text-purple-400 h-5 w-5" />} text="0dervisgenc@gmail.com" href="mailto:0dervisgenc@gmail.com" />
+                                        <ContactItem isDarkMode={isDarkMode} icon={<MapPin className="text-red-400 h-5 w-5" />} text="Istanbul, Turkey" href={undefined} />
+                                        <ContactItem isDarkMode={isDarkMode} icon={<GitHubLogoIcon className="text-gray-400 h-5 w-5" />} text="github.com/dervisgenc" href="https://github.com/dervisgenc" />
+                                        <ContactItem isDarkMode={isDarkMode} icon={<Linkedin className="text-blue-400 h-5 w-5" />} text="linkedin.com/in/dervisgenc" href="https://www.linkedin.com/in/dervisgenc/" />
+                                        <ContactItem isDarkMode={isDarkMode} icon={<InstagramLogoIcon className="text-green-400 h-5 w-5" />} text="Derviş Genç" href="https://www.instagram.com/dervis_genc/" />
+                                        <ContactItem isDarkMode={isDarkMode} icon={<TwitterLogoIcon className="text-green-400 h-5 w-5" />} text="Derviş Genç" href="https://x.com/1sabredendervis" />
+                                        <ContactItem isDarkMode={isDarkMode} icon={<Globe className="text-cyan-400 h-5 w-5" />} text="dervisgenc.com" href="https://www.dervisgenc.com" />
                                     </div>
                                 </div>
-                                <Button className="w-full bg-cyan-600 hover:bg-cyan-700 text-white group transition-all duration-300 ease-in-out transform hover:scale-105">
-                                    <Download className="mr-2 h-4 w-4 group-hover:animate-bounce" />
-                                    Download Full Resume
-                                </Button>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            {/* Lower section: CV Details */}
-            <section className="min-h-screen bg-gray-900 py-16">
+            <section className={`min-h-screen py-16 ${isDarkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
                 <div className="container mx-auto px-4">
                     <h2 className="text-4xl font-bold mb-12 text-center bg-clip-text text-transparent bg-gradient-to-r from-purple-400 via-pink-500 to-red-500">
                         Experience & Skills
                     </h2>
 
                     <div className="space-y-16">
-                        <CVSection title="Technical Skills">
-                            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                                {['C/C++', 'C#', 'Python', 'Java', 'Linux', 'Network Security', 'Web Development', 'Git'].map((skill) => (
-                                    <div key={skill} className="bg-gray-800 p-3 rounded-lg text-center hover:bg-gray-700 transition-colors">
-                                        {skill}
-                                    </div>
-                                ))}
-                            </div>
+                        <CVSection title="Work Experience" isDarkMode={isDarkMode}>
+                            <ExperienceItem
+                                title="Cybersecurity Part-Time Working Student"
+                                company="Siemens Advanta"
+                                period="Jan 2024 - Present"
+                                description="Contributed to risk and vulnerability management, incident management, and developed security policies in Information Security. Gained hands-on experience in Secure Development Lifecycle (SDL) processes in Product and Solution Secuirty."
+                                isDarkMode={isDarkMode}
+                            />
+                            <div className="my-4"></div>
+                            <ExperienceItem
+                                title="Freelance Web Developer"
+                                company="Vision Base"
+                                period="Oct 2024 - Nov 2024"
+                                description="Developed an interactive corporate website using React, featuring video integration and user-focused design."
+                                isDarkMode={isDarkMode}
+                            />
                         </CVSection>
 
-                        <CVSection title="Projects">
-                            <div className="space-y-6">
-                                <ProjectItem
-                                    title="Human Resources Management System Backend (Java)"
-                                    description="Developed a comprehensive HR management system using Java, implementing core functionalities for employee data management and payroll processing."
-                                    link="https://github.com/dervisgenc/javaCamp/tree/main/hrms"
-                                />
-                                <ProjectItem
-                                    title="Rent a Car Backend (C#)"
-                                    description="Created a robust backend system for a car rental service using C# and .NET, handling reservations, inventory management, and user authentication."
-                                    link="https://github.com/dervisgenc/rent-a-car-project"
-                                />
-                            </div>
+                        <CVSection title="Projects" isDarkMode={isDarkMode}>
+                            <ProjectItem
+                                title="BeeHub"
+                                description="Cross-platform desktop app for ITU students, featuring a React/TypeScript UI and Go-based backend."
+                                link="https://github.com/ITU-BeeHub"
+                                isDarkMode={isDarkMode}
+                            />
+                            <div className="my-4"></div>
+                            <ProjectItem
+                                title="Cd Burner App"
+                                description="A Windows app in C++ for secure data burning on optical media."
+                                link="https://github.com/dervisgenc/CdBurner"
+                                isDarkMode={isDarkMode}
+                            />
+                            <div className="my-4"></div>
+                            <ProjectItem
+                                title="Fileless Malware Analysis with AI"
+                                description="Bachelor's capstone project focused on detecting fileless malware using AI/ML techniques."
+                                link="#"
+                                isDarkMode={isDarkMode}
+                                text="In Progress"
+                            />
+                            <div className="my-4"></div>
+                            <ProjectItem
+                                title="Personal Blog App"
+                                description="A full-stack application for managing and sharing blog posts. Built with React, TypeScript, Go, and PostgreSQL."
+                                link="https://dervisgenc.com"
+                                isDarkMode={isDarkMode}
+                            />
+
                         </CVSection>
 
-                        <CVSection title="Work Experience">
-                            <div className="relative border-l-2 border-gray-700 pl-8 ml-4 space-y-8">
-                                <ExperienceItem
-                                    title="Software Developer Intern"
-                                    company="TechCorp Inc."
-                                    period="June 2023 - August 2023"
-                                    description="Assisted in developing web applications, collaborated with senior developers, and gained hands-on experience with agile methodologies."
-                                />
-                            </div>
-                        </CVSection>
-
-                        <CVSection title="Education & Certificates">
+                        <CVSection title="Education & Certificates" isDarkMode={isDarkMode}>
                             <div className="space-y-4">
                                 <div>
                                     <h4 className="text-xl font-semibold">Computer Engineering</h4>
-                                    <p className="text-gray-400">Istanbul Technical University (2020 - 2025 expected)</p>
+                                    <p className="text-gray-400">Istanbul Technical University (2020 - 2025)</p>
                                 </div>
                                 <div>
                                     <h4 className="text-lg font-semibold mb-2">Certificates:</h4>
                                     <ul className="list-disc list-inside text-gray-300 space-y-1">
                                         <li>CCNAv7: Introduction to Networks Course</li>
-                                        <li>Partner: NDG Linux Unhatched Course</li>
-                                        <li>Introduction to Cybersecurity Course</li>
                                     </ul>
                                 </div>
                             </div>
@@ -117,24 +136,27 @@ export default function AboutMe() {
                     </div>
                 </div>
             </section>
-
-            <Footer></Footer>
         </div>
-    )
+    );
 }
+
 
 interface ContactItemProps {
     icon: React.ReactNode;
     text: string;
     href?: string;
+    isDarkMode: boolean;
 }
 
-const ContactItem = ({ icon, text, href }: ContactItemProps) => (
+const ContactItem = ({ icon, text, href, isDarkMode }: ContactItemProps) => (
     <a
         href={href}
         target={href ? "_blank" : undefined}
         rel={href ? "noopener noreferrer" : undefined}
-        className="flex items-center gap-3 hover:text-cyan-400 transition-colors text-gray-100"
+        className={`flex items-center gap-3 ${isDarkMode
+            ? 'text-gray-100 hover:text-cyan-400'
+            : 'text-gray-700 hover:text-cyan-600'
+            } transition-colors`}
     >
         {icon}
         <span>{text}</span>
@@ -143,10 +165,14 @@ const ContactItem = ({ icon, text, href }: ContactItemProps) => (
 
 interface SkillBadgeProps {
     children: React.ReactNode;
+    isDarkMode: boolean;
 }
 
-const SkillBadge = ({ children }: SkillBadgeProps) => (
-    <span className="px-3 py-1 bg-gray-700 rounded-full text-sm font-medium text-gray-100">
+const SkillBadge = ({ children, isDarkMode }: SkillBadgeProps) => (
+    <span className={`px-3 py-1 rounded-full text-sm font-medium ${isDarkMode
+        ? 'bg-gray-700 text-gray-100'
+        : 'bg-gray-200 text-gray-800'
+        }`}>
         {children}
     </span>
 )
@@ -154,6 +180,7 @@ const SkillBadge = ({ children }: SkillBadgeProps) => (
 interface CVSectionProps {
     title: string;
     children: React.ReactNode;
+    isDarkMode: boolean;
 }
 
 const CVSection = ({ title, children }: CVSectionProps) => (
@@ -167,14 +194,20 @@ interface ProjectItemProps {
     title: string;
     description: string;
     link: string;
+    isDarkMode: boolean;
+    text?: string;
 }
 
-const ProjectItem = ({ title, description, link }: ProjectItemProps) => (
-    <div className="bg-gray-800 p-6 rounded-lg hover:bg-gray-750 transition-colors">
+const ProjectItem = ({ title, description, link, isDarkMode, text }: ProjectItemProps) => (
+    <div className={`${isDarkMode
+        ? 'bg-gray-800 hover:bg-gray-750'
+        : 'bg-white hover:bg-gray-100'
+        } p-6 rounded-lg transition-colors`}>
         <h4 className="text-xl font-semibold mb-2">{title}</h4>
-        <p className="text-gray-300 mb-4">{description}</p>
+        <p className={`${isDarkMode ? 'text-gray-300' : 'text-gray-700'
+            } mb-4`}>{description}</p>
         <a href={link} target="_blank" rel="noopener noreferrer" className="text-cyan-400 hover:underline">
-            View on GitHub
+            {text || "View on GitHub"}
         </a>
     </div>
 )
@@ -184,13 +217,15 @@ interface ExperienceItemProps {
     company: string;
     period: string;
     description: string;
+    isDarkMode: boolean;
 }
 
-const ExperienceItem = ({ title, company, period, description }: ExperienceItemProps) => (
+const ExperienceItem = ({ title, company, period, description, isDarkMode }: ExperienceItemProps) => (
     <div className="relative">
         <div className="absolute -left-11 mt-1.5 h-4 w-4 rounded-full border-2 border-gray-700 bg-gray-900"></div>
         <h4 className="text-xl font-semibold">{title}</h4>
         <p className="text-gray-400">{company} | {period}</p>
-        <p className="mt-2 text-gray-300">{description}</p>
+        <p className={`${isDarkMode ? 'text-gray-300' : 'text-gray-700'
+            } mt-2`}>{description}</p>
     </div>
 )
