@@ -4,14 +4,25 @@ import "time"
 
 // Post struct
 type Post struct {
-	ID        uint       `json:"id" example:"1"`                            // gorm.Model'den
-	CreatedAt time.Time  `json:"created_at" example:"2024-10-01T00:00:00Z"` // gorm.Model'den
-	UpdatedAt time.Time  `json:"updated_at" example:"2024-10-01T01:00:00Z"` // gorm.Model'den
-	DeletedAt *time.Time `json:"deleted_at,omitempty"`                      // gorm.Model'den
-	Title     string     `gorm:"type:varchar(200);not null" json:"title" example:"Sample Post"`
+	ID        uint       `json:"id" example:"1"`
+	CreatedAt time.Time  `json:"created_at" example:"2024-10-01T00:00:00Z"`
+	UpdatedAt time.Time  `json:"updated_at" example:"2024-10-01T01:00:00Z"`
+	DeletedAt *time.Time `json:"deleted_at,omitempty"`
+	Title     string     `gorm:"type:varchar(200);not null;index" json:"title" example:"Sample Post"`
 	Content   string     `gorm:"type:text;not null" json:"content" example:"This is the content of the post"`
 	Summary   string     `gorm:"type:text" json:"summary" example:"This is a summary"`
-	ImageURL  string     `gorm:"type:varchar(255)" json:"image_url" example:"http://example.com/image.jpg"`
+	ImagePath string     `gorm:"type:varchar(255)" json:"image_path"`
+	ImageURL  string     `gorm:"type:varchar(255)" json:"image_url"`
 	ReadTime  int        `gorm:"type:integer" json:"read_time" example:"5"`
-	IsActive  bool       `gorm:"type:boolean;default:true" json:"is_active" example:"true"`
+	IsActive  bool       `gorm:"type:boolean;index" json:"is_active" example:"false"`
+	LikeCount int        `gorm:"type:integer;default:0;index" json:"like_count"`
+}
+
+// PaginatedPosts represents a paginated response for posts
+type PaginatedPosts struct {
+	Posts      []*Post `json:"posts"`
+	TotalPosts int64   `json:"total_posts"`
+	Page       int     `json:"current_page"`
+	PageSize   int     `json:"page_size"`
+	TotalPages int     `json:"total_pages"`
 }
