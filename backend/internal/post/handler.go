@@ -4,20 +4,25 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"path/filepath"
 	"strconv"
+	"time"
 
+	"github.com/dervisgenc/dervisgenc-blog/backend/internal/image"
 	myerr "github.com/dervisgenc/dervisgenc-blog/backend/pkg"
 	"github.com/dervisgenc/dervisgenc-blog/backend/pkg/models"
 	"github.com/gin-gonic/gin"
 )
 
 type PostHandler struct {
-	service *PostService
+	service      *PostService
+	imageService *image.Service
 }
 
-func NewPostHandler(service *PostService) *PostHandler {
-	return &PostHandler{service: service}
+func NewPostHandler(service *PostService, imageService *image.Service) *PostHandler {
+	return &PostHandler{
+		service:      service,
+		imageService: imageService,
+	}
 }
 
 // GetAllPosts godoc
@@ -26,8 +31,8 @@ func NewPostHandler(service *PostService) *PostHandler {
 // @Tags Posts
 // @Accept json
 // @Produce json
-// @Success 200 {array} models.Post
-// @Failure 500 {object} models.ErrorResponse "Internal Server Error"
+// @Success 200 {array} dto.PostListResponse
+// @Failure 500 {object} dto.ErrorResponse "Internal Server Error"
 // @Router /posts [get]
 func (h *PostHandler) GetAllPosts(c *gin.Context) {
 	posts, err := h.service.GetAllPosts()
@@ -45,9 +50,9 @@ func (h *PostHandler) GetAllPosts(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param id path int true "Post ID"
-// @Success 200 {object} models.Post
-// @Failure 404 {object} models.ErrorResponse "Post not found"
-// @Failure 500 {object} models.ErrorResponse "Internal Server Error"
+// @Success 200 {object} dto.PostDetailResponse
+// @Failure 404 {object} dto.ErrorResponse "Post not found"
+// @Failure 500 {object} dto.ErrorResponse "Internal Server Error"
 // @Router /posts/{id} [get]
 func (h *PostHandler) GetPostByID(c *gin.Context) {
 	idParam := c.Param("id")
@@ -82,7 +87,7 @@ func (h *PostHandler) GetPostByID(c *gin.Context) {
 func (h *PostHandler) CreatePost(c *gin.Context) {
 	var post models.Post
 
-	// Form verilerini tek tek çekiyoruz
+	// Get form data
 	post.Title = c.PostForm("title")
 	post.Summary = c.PostForm("description")
 	post.Content = c.PostForm("content")
@@ -92,25 +97,32 @@ func (h *PostHandler) CreatePost(c *gin.Context) {
 		return
 	}
 	post.ReadTime = readTime
-	hidden, _ := strconv.ParseBool(c.PostForm("hidden"))
-	post.IsActive = hidden
+	post.IsActive, _ = strconv.ParseBool(c.PostForm("isActive"))
 
-	// Eğer bir görsel gönderildiyse işle
+	// Handle image upload
 	file, err := c.FormFile("image")
 	if err == nil {
-		filename := filepath.Base(file.Filename)
-		savePath := fmt.Sprintf("uploads/%s", filename)
-		if err := c.SaveUploadedFile(file, savePath); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to save file"})
+		// Save image using image service
+		filename, err := h.imageService.SaveImage(file)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Unable to save image: %v", err)})
 			return
 		}
-		post.ImageURL = fmt.Sprintf("http://localhost:8080/uploads/%s", filename)
-		fmt.Println(post.ImageURL)
+
+		// Set both image path and URL
+		post.ImagePath = filename
+		post.ImageURL = h.imageService.GetImageURL(filename)
+
+		fmt.Printf("Saved image - Path: %s, URL: %s\n", post.ImagePath, post.ImageURL)
 	}
 
-	// Post kaydetme işlemi
+	// Create post
 	err = h.service.CreatePost(&post)
 	if err != nil {
+		// Cleanup the uploaded image if post creation fails
+		if post.ImagePath != "" {
+			_ = h.imageService.DeleteImage(post.ImagePath)
+		}
 		c.Error(myerr.WithHTTPStatus(err, http.StatusInternalServerError))
 		return
 	}
@@ -130,17 +142,85 @@ func (h *PostHandler) CreatePost(c *gin.Context) {
 // @Failure 500 {object} models.ErrorResponse "Internal Server Error"
 // @Router /posts/{id} [put]
 func (h *PostHandler) UpdatePost(c *gin.Context) {
-	var post models.Post
-	if err := c.ShouldBindJSON(&post); err != nil {
-		c.Error(myerr.WithHTTPStatus(errors.New("invalid request"), http.StatusBadRequest))
-		return
-	}
-	err := h.service.UpdatePost(&post)
+	// Get post ID from URL parameter
+	idParam := c.Param("id")
+	id, err := strconv.ParseUint(idParam, 10, 32)
 	if err != nil {
-		c.Error(myerr.WithHTTPStatus(err, http.StatusInternalServerError))
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid post ID"})
 		return
 	}
-	c.JSON(http.StatusOK, post)
+
+	// Get existing post
+	existingPost, err := h.service.GetPostByIDAdmin(uint(id))
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Post not found"})
+		return
+	}
+
+	// Create updated post with existing data, including timestamps
+	updatedPost := &models.Post{
+		ID:        uint(id),
+		CreatedAt: existingPost.CreatedAt, // Preserve original creation date
+		Title:     existingPost.Title,
+		Summary:   existingPost.Summary,
+		Content:   existingPost.Content,
+		ReadTime:  existingPost.ReadTime,
+		ImagePath: existingPost.ImagePath,
+		ImageURL:  existingPost.ImageURL,
+		IsActive:  existingPost.IsActive,
+	}
+
+	// Update fields if provided in form data
+	if title := c.PostForm("title"); title != "" {
+		updatedPost.Title = title
+	}
+	if description := c.PostForm("description"); description != "" {
+		updatedPost.Summary = description
+	}
+	if content := c.PostForm("content"); content != "" {
+		updatedPost.Content = content
+	}
+	if readTime := c.PostForm("readTime"); readTime != "" {
+		if rt, err := strconv.Atoi(readTime); err == nil {
+			updatedPost.ReadTime = rt
+		}
+	}
+	if isActive := c.PostForm("isActive"); isActive != "" {
+		active, err := strconv.ParseBool(isActive)
+		if err == nil {
+			updatedPost.IsActive = active
+		}
+	}
+
+	// Handle new image if provided
+	file, err := c.FormFile("image")
+	if err == nil {
+		// Delete old image if exists
+		if existingPost.ImagePath != "" {
+			_ = h.imageService.DeleteImage(existingPost.ImagePath)
+		}
+
+		// Save new image
+		filename, err := h.imageService.SaveImage(file)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to save image"})
+			return
+		}
+		updatedPost.ImagePath = filename
+		updatedPost.ImageURL = h.imageService.GetImageURL(filename)
+	}
+
+	// Set UpdatedAt to current time
+	updatedPost.UpdatedAt = time.Now()
+
+	// Update the post
+	err = h.service.UpdatePost(updatedPost)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, updatedPost)
 }
 
 // DeletePost godoc
@@ -195,38 +275,15 @@ func (h *PostHandler) DeletePostPermanently(c *gin.Context) {
 	c.JSON(http.StatusOK, models.SuccessResponse{Message: "Post deleted permanently"})
 }
 
-// UploadImage handles the uploading of post images
-func (h *PostHandler) UploadImage(c *gin.Context) {
-	file, err := c.FormFile("image")
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "No file found"})
-		return
-	}
-
-	// Save file to the server or upload to cloud storage
-	filename := filepath.Base(file.Filename)
-	savePath := fmt.Sprintf("uploads/%s", filename)
-	if err := c.SaveUploadedFile(file, savePath); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to save file"})
-		return
-	}
-
-	// URL to be returned
-	imageUrl := fmt.Sprintf("http://localhost:8080/%s", savePath)
-
-	// Return the URL to the frontend
-	c.JSON(http.StatusOK, gin.H{"imageUrl": imageUrl})
-}
-
 // GetAllPosts godoc
 // @Summary Get all posts
 // @Description Fetch all posts in the system
 // @Tags Posts
 // @Accept json
 // @Produce json
-// @Success 200 {array} models.Post
-// @Failure 500 {object} models.ErrorResponse "Internal Server Error"
-// @Router /posts [get]
+// @Success 200 {array} dto.PostListResponse
+// @Failure 500 {object} dto.ErrorResponse "Internal Server Error"
+// @Router /admin/posts [get]
 func (h *PostHandler) GetAllAdmin(c *gin.Context) {
 	posts, err := h.service.GetAllAdmin()
 	if err != nil {
@@ -249,4 +306,81 @@ func (h *PostHandler) GetPostByIDAdmin(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, post)
+}
+
+// GetPaginatedPosts godoc
+// @Summary Get paginated posts
+// @Description Fetch posts with pagination
+// @Tags Posts
+// @Accept json
+// @Produce json
+// @Param page query int false "Page number (default: 1)"
+// @Param size query int false "Page size (default: 9)"
+// @Success 200 {object} models.PaginatedPosts
+// @Failure 400 {object} models.ErrorResponse "Invalid parameters"
+// @Failure 500 {object} models.ErrorResponse "Internal Server Error"
+// @Router /posts/paginated [get]
+func (h *PostHandler) GetPaginatedPosts(c *gin.Context) {
+	// Parse query parameters
+	page, err := strconv.Atoi(c.DefaultQuery("page", "1"))
+	if err != nil || page < 1 {
+		c.Error(myerr.WithHTTPStatus(errors.New("invalid page number"), http.StatusBadRequest))
+		return
+	}
+
+	pageSize, err := strconv.Atoi(c.DefaultQuery("size", "9"))
+	if err != nil || pageSize < 1 {
+		c.Error(myerr.WithHTTPStatus(errors.New("invalid page size"), http.StatusBadRequest))
+		return
+	}
+
+	// Get paginated posts
+	result, err := h.service.GetPaginatedPosts(page, pageSize)
+	if err != nil {
+		c.Error(myerr.WithHTTPStatus(err, http.StatusInternalServerError))
+		return
+	}
+
+	c.JSON(http.StatusOK, result)
+}
+
+// SearchPosts godoc
+// @Summary Search posts with pagination
+// @Description Search posts by query string with pagination
+// @Tags Posts
+// @Accept json
+// @Produce json
+// @Param q query string true "Search query"
+// @Param page query int false "Page number (default: 1)"
+// @Param size query int false "Page size (default: 9)"
+// @Success 200 {object} models.PaginatedPosts
+// @Failure 400 {object} models.ErrorResponse "Invalid parameters"
+// @Failure 500 {object} models.ErrorResponse "Internal Server Error"
+// @Router /posts/search [get]
+func (h *PostHandler) SearchPosts(c *gin.Context) {
+	query := c.Query("q")
+	if query == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "search query is required"})
+		return
+	}
+
+	page, err := strconv.Atoi(c.DefaultQuery("page", "1"))
+	if err != nil || page < 1 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid page number"})
+		return
+	}
+
+	pageSize, err := strconv.Atoi(c.DefaultQuery("size", "9"))
+	if err != nil || pageSize < 1 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid page size"})
+		return
+	}
+
+	result, err := h.service.SearchPosts(query, page, pageSize)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, result)
 }
