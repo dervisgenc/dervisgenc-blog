@@ -67,7 +67,7 @@ export default function PostAddPage() {
         if (imageFile) formData.append('image', imageFile);
 
         try {
-            const response = await fetch('http://localhost:8080/admin/posts', {
+            const response = await fetch('https://blog.dervisgenc.com/api/admin/posts', {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,

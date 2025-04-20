@@ -25,8 +25,8 @@ const HomePage: React.FC = () => {
         setLoading(true);
         try {
             let url = query ?
-                `http://localhost:8080/posts/search?q=${query}&page=${page}&size=${pageSize}` :
-                `http://localhost:8080/posts/paginated?page=${page}&size=${pageSize}`;
+                `https://blog.dervisgenc.com/api/posts/search?q=${query}&page=${page}&size=${pageSize}` :
+                `https://blog.dervisgenc.com/api/posts/paginated?page=${page}&size=${pageSize}`;
 
             const response = await axios.get<PaginatedResponse>(url);
             setPosts(response.data.posts);

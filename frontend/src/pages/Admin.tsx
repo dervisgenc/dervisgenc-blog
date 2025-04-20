@@ -38,7 +38,7 @@ export default function AdminPage() {
             try {
                 setIsLoading(true);
                 const headers = getAuthHeaders();
-                const response = await axios.get('http://localhost:8080/admin/posts', {
+                const response = await axios.get('https://blog.dervisgenc.com/api/admin/posts', {
                     headers: headers
                 });
                 setPosts(response.data);
@@ -85,7 +85,7 @@ export default function AdminPage() {
                 formData.append('readTime', postToUpdate.read_time.toString());
                 formData.append('isActive', (!postToUpdate.is_active).toString()); // Toggle the current state
 
-                await axios.put(`http://localhost:8080/admin/posts/${selectedPostId}`, formData, {
+                await axios.put(`https://blog.dervisgenc.com/api/admin/posts/${selectedPostId}`, formData, {
                     headers: {
                         Authorization: `Bearer ${token}`,
                         'Content-Type': 'multipart/form-data',
@@ -104,7 +104,7 @@ export default function AdminPage() {
             }
         } else if (selectedPostId && confirmAction === 'delete') {
             try {
-                await axios.delete(`http://localhost:8080/admin/posts/${selectedPostId}/permanent`, {
+                await axios.delete(`https://blog.dervisgenc.com/api/admin/posts/${selectedPostId}/permanent`, {
                     headers: {
                         Authorization: `Bearer ${token}`
                     }

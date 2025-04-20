@@ -36,7 +36,7 @@ export default function PostPage() {
     useEffect(() => {
         const fetchPost = async () => {
             try {
-                const response = await axios.get(`http://localhost:8080/admin/posts/${id}`, {
+                const response = await axios.get(`https://blog.dervisgenc.com/api/admin/posts/${id}`, {
                     headers: {
                         Authorization: `Bearer ${token}`
                     }

@@ -16,7 +16,7 @@ export function useLike({ postId, initialLikeCount }: UseLikeProps) {
     useEffect(() => {
         const fetchLikeStatus = async () => {
             try {
-                const response = await axios.get(`http://localhost:8080/posts/${postId}/like`);
+                const response = await axios.get(`https://blog.dervisgenc.com/api/posts/${postId}/like`);
                 const { has_liked, likes } = response.data;
                 setIsLiked(has_liked);
                 setLikeCount(likes);
@@ -33,7 +33,7 @@ export function useLike({ postId, initialLikeCount }: UseLikeProps) {
         setIsLoading(true);
         setError(null);
         try {
-            const response = await axios.post(`http://localhost:8080/posts/${postId}/like`);
+            const response = await axios.post(`https://blog.dervisgenc.com/api/posts/${postId}/like`);
             const { likes } = response.data;
             setLikeCount(likes);
             setIsLiked(!isLiked);

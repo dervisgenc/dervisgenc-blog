@@ -29,7 +29,7 @@ export default function PostEditPage() {
     useEffect(() => {
         const fetchPost = async () => {
             try {
-                const response = await axios.get(`http://localhost:8080/admin/posts/${id}`, {
+                const response = await axios.get(`https://blog.dervisgenc.com/api/admin/posts/${id}`, {
                     headers: {
                         Authorization: `Bearer ${token}`,
                     },
@@ -124,7 +124,7 @@ export default function PostEditPage() {
             }
 
             const savePromise = axios.put(
-                `http://localhost:8080/admin/posts/${editingPost.id}`,
+                `https://blog.dervisgenc.com/api/admin/posts/${editingPost.id}`,
                 formData,
                 {
                     headers: {

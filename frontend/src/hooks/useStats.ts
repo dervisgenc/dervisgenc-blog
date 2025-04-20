@@ -12,7 +12,7 @@ export const useStats = (startDate?: string, endDate?: string) => {
         const fetchStats = async () => {
             try {
                 const headers = getAuthHeaders(); // This might throw an error
-                let url = 'http://localhost:8080/admin/stats/detailed';
+                let url = 'https://blog.dervisgenc.com/api/admin/stats/detailed';
                 if (startDate && endDate) {
                     url += `?start_date=${startDate}&end_date=${endDate}`;
                 }
@@ -48,7 +48,7 @@ export const usePostStats = (postId: number) => {
             try {
                 const headers = getAuthHeaders();
                 const response = await axios.get<PostDetailedResponse>(
-                    `http://localhost:8080/admin/posts/stats/${postId}`,
+                    `https://blog.dervisgenc.com/api/admin/posts/stats/${postId}`,
                     { headers }
                 );
                 setStats(response.data);
@@ -82,7 +82,7 @@ export const useDetailedStats = () => {
             try {
                 const headers = getAuthHeaders();
                 const response = await axios.get<DetailedStatsResponse>(
-                    'http://localhost:8080/admin/posts/detailed-stats',
+                    'https://blog.dervisgenc.com/api/admin/posts/detailed-stats',
                     { headers }
                 );
                 setStats(response.data);

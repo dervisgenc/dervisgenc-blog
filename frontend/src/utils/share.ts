@@ -14,7 +14,7 @@ export async function shareContent(title: string, text: string, url: string) {
             });
 
             // Track successful share
-            await axios.post(`http://localhost:8080/posts/${postId}/share`);
+            await axios.post(`https://blog.dervisgenc.com/api/posts/${postId}/share`);
 
             return {
                 success: true,
@@ -25,7 +25,7 @@ export async function shareContent(title: string, text: string, url: string) {
             await navigator.clipboard.writeText(url);
 
             // Still track as share even if just copied
-            await axios.post(`http://localhost:8080/posts/${postId}/share`);
+            await axios.post(`https://blog.dervisgenc.com/api/posts/${postId}/share`);
 
             return {
                 success: true,

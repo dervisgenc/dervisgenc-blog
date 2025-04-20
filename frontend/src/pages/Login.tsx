@@ -66,7 +66,7 @@ export default function LoginPage() {
         e.preventDefault();
 
         try {
-            const response = await axios.post('http://localhost:8080/admin/login', {
+            const response = await axios.post('https://blog.dervisgenc.com/api/admin/login', {
                 username,
                 password,
             });

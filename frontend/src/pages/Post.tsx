@@ -38,7 +38,7 @@ export default function PostPage() {
     useEffect(() => {
         const fetchPost = async () => {
             try {
-                const response = await axios.get(`http://localhost:8080/posts/${id}`);
+                const response = await axios.get(`https://blog.dervisgenc.com/api/posts/${id}`);
                 setPost(response.data);
                 setShareCount(response.data.shares);
             } catch (err) {
