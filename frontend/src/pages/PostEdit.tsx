@@ -9,7 +9,7 @@ import '../quill-custom.css';
 import { useDarkMode } from '@/components/context/DarkModeContext';
 import { PostDetail } from '@/types';
 import { quillModules, quillFormats } from '@/utils/quillConfig';
-import { toast } from 'react-hot-toast';
+import { toast } from '@/hooks/use-toast'; // Corrected import path
 
 export default function PostEditPage() {
     const { isDarkMode } = useDarkMode();
@@ -43,7 +43,7 @@ export default function PostEditPage() {
                     navigate('/404', { replace: true });
                 } else {
                     setError('Failed to fetch post');
-                    toast.error('Failed to load post');
+                    toast({ title: 'Error', description: 'Failed to load post', variant: 'destructive' });
                 }
             } finally {
                 setIsLoading(false);
@@ -59,9 +59,25 @@ export default function PostEditPage() {
         }
     }, [initialPost, editingPost, newImage]);
 
+    // Confirm before leaving if there are unsaved changes
+    useEffect(() => {
+        const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+            if (hasUnsavedChanges) {
+                e.preventDefault();
+                e.returnValue = ''; // Standard way to trigger confirmation
+            }
+        };
+
+        window.addEventListener('beforeunload', handleBeforeUnload);
+        return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    }, [hasUnsavedChanges]); // Dependency array includes hasUnsavedChanges
+
+    // Moved conditional returns here, after all hooks
     if (isLoading) return <p>Loading...</p>;
     if (error) return <p>{error}</p>;
-    if (!editingPost) return <p>Post not found</p>;
+    // Ensure editingPost exists before proceeding to render the form
+    if (!editingPost) return <p>Post not found or failed to load.</p>;
+
 
     // Handle image change
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -74,23 +90,25 @@ export default function PostEditPage() {
         if (!editingPost) return false;
 
         if (!editingPost.title.trim()) {
-            toast.error('Title is required');
+            // Use the imported toast function correctly
+            toast({ title: 'Error', description: 'Title is required', variant: 'destructive' });
             return false;
         }
         if (!editingPost.content.trim()) {
-            toast.error('Content is required');
+            toast({ title: 'Error', description: 'Content is required', variant: 'destructive' });
             return false;
         }
         if (!editingPost.summary.trim()) {
-            toast.error('Summary is required');
+            toast({ title: 'Error', description: 'Summary is required', variant: 'destructive' });
             return false;
         }
         if (editingPost.read_time <= 0) {
-            toast.error('Read time must be positive');
+            toast({ title: 'Error', description: 'Read time must be positive', variant: 'destructive' });
             return false;
         }
         return true;
     };
+
 
     const handleSave = async () => {
         if (!editingPost || !initialPost) return;
@@ -123,7 +141,10 @@ export default function PostEditPage() {
                 formData.append('image_url', initialPost.image_url);
             }
 
-            const savePromise = axios.put(
+            // Use the imported toast function correctly
+            toast({ title: 'Saving...', description: 'Updating post...' });
+
+            const response = await axios.put(
                 `https://blog.dervisgenc.com/api/admin/posts/${editingPost.id}`,
                 formData,
                 {
@@ -134,40 +155,27 @@ export default function PostEditPage() {
                 }
             );
 
-            toast.promise(savePromise, {
-                loading: 'Saving changes...',
-                success: 'Post updated successfully!',
-                error: 'Failed to update post'
-            });
-
-            const response = await savePromise;
 
             if (response.status === 200) {
+                toast({ title: 'Success', description: 'Post updated successfully!' });
                 setHasUnsavedChanges(false);
-                setInitialPost(response.data);
+                setInitialPost(response.data); // Update initial post state with the saved data
+                setEditingPost(response.data); // Also update editing post state
                 navigate('/sentinel');
+            } else {
+                // Handle non-200 success responses if necessary, or rely on catch block
+                toast({ title: 'Warning', description: `Received status: ${response.status}`, variant: 'default' });
             }
         } catch (err) {
             console.error('Failed to update post:', err);
             // Revert optimistic update
             setEditingPost(previousPost);
+            toast({ title: 'Error', description: 'Failed to update post', variant: 'destructive' });
         } finally {
             setIsSaving(false);
         }
     };
 
-    // Confirm before leaving if there are unsaved changes
-    useEffect(() => {
-        const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-            if (hasUnsavedChanges) {
-                e.preventDefault();
-                e.returnValue = '';
-            }
-        };
-
-        window.addEventListener('beforeunload', handleBeforeUnload);
-        return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-    }, [hasUnsavedChanges]);
 
     return (
         <div className={`min-h-screen p-8 ${isDarkMode ? 'bg-gray-900 text-gray-100' : 'bg-gray-50 text-gray-900'}`}>
