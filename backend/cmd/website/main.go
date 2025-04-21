@@ -21,8 +21,6 @@ import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
-	swaggerFiles "github.com/swaggo/files"
-	ginSwagger "github.com/swaggo/gin-swagger"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
@@ -89,9 +87,9 @@ func (a *App) initialize() error {
 	routes.SetupRoutes(router, handlers, []byte(os.Getenv("JWT_SECRET")))
 
 	// Setup Swagger
-	if os.Getenv("SWAGGER_ENABLED") == "true" {
-		router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
-	}
+	// if os.Getenv("SWAGGER_ENABLED") == "true" {
+	// 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+	// }
 
 	return nil
 }
@@ -167,7 +165,7 @@ func (a *App) setupRouter() *gin.Engine {
 
 	// CORS configuration
 	r.Use(cors.New(cors.Config{
-		AllowOrigins: []string{"*"}, // Allow all origins during development
+		AllowOrigins: []string{"https://dervisgenc.com", "https://blog.dervisgenc.com"}, // Allow specific origins
 		AllowMethods: []string{
 			"GET",
 			"POST",
@@ -195,17 +193,11 @@ func (a *App) setupRouter() *gin.Engine {
 		},
 		AllowCredentials: true,
 		MaxAge:           12 * time.Hour,
-		AllowWildcard:    true,
-		AllowWebSockets:  true,
-		// Optional: Implement a custom origin validator
-		AllowOriginFunc: func(origin string) bool {
-			// Add your custom origin validation logic here
-			return true // Change this based on your security requirements
-		},
+		// AllowWildcard is not needed when specifying exact origins
+		// AllowWebSockets can be kept if needed
+		AllowWebSockets: true,
+		// Remove AllowOriginFunc as AllowOrigins handles the validation now
 	}))
-
-	// Serve static files from the "uploads" directory
-	r.Static("/uploads/images", "./uploads/images")
 
 	//Add error handling and logging middleware
 	r.Use(middleware.LoggingMiddleware(a.logger))

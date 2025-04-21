@@ -56,7 +56,7 @@ func LoadConfig() *Config {
 			StoragePath:  "uploads/images",
 			MaxSizeMB:    5,
 			AllowedTypes: []string{"image/jpeg", "image/png", "image/webp"},
-			BaseURL:      "http://localhost:8080/uploads/images",
+			BaseURL:      "https://blog.dervisgenc.com/api/uploads/images",
 			Quality:      85,
 			MaxWidth:     1920,
 			MaxHeight:    1080,

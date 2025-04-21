@@ -17,25 +17,32 @@ type HandlerContainer struct {
 }
 
 func SetupRoutes(r *gin.Engine, h *HandlerContainer, jwtSecret []byte) {
-	// Public routes
-	r.POST("/admin/login", h.Auth.LoginHandler)
-
-	posts := r.Group("/posts")
+	// Tüm rotaları /api altına al
+	api := r.Group("/api")
 	{
-		posts.GET("", h.Post.GetAllPosts)
-		posts.GET("/paginated", h.Post.GetPaginatedPosts)
-		posts.GET("/search", h.Post.SearchPosts)
-		posts.GET("/:id", h.Post.GetPostByID)
-		posts.POST("/:id/like", h.Like.ToggleLike)
-		posts.GET("/:id/like", h.Like.GetLikeStatus)
-		posts.POST("/:id/share", h.Stats.IncrementShare)
-	}
 
-	// Admin routes
-	admin := r.Group("/admin")
-	admin.Use(middleware.AuthMiddleware(jwtSecret))
-	{
-		setupAdminRoutes(admin, h)
+		api.Static("/uploads/images", "./uploads/images")
+
+		// Public routes within /api
+		api.POST("/admin/login", h.Auth.LoginHandler) // -> /api/admin/login
+
+		posts := api.Group("/posts") // -> /api/posts grubu
+		{
+			posts.GET("", h.Post.GetAllPosts)                 // -> /api/posts
+			posts.GET("/paginated", h.Post.GetPaginatedPosts) // -> /api/posts/paginated (ISTENEN)
+			posts.GET("/search", h.Post.SearchPosts)          // -> /api/posts/search
+			posts.GET("/:id", h.Post.GetPostByID)             // -> /api/posts/:id
+			posts.POST("/:id/like", h.Like.ToggleLike)        // -> /api/posts/:id/like
+			posts.GET("/:id/like", h.Like.GetLikeStatus)      // -> /api/posts/:id/like
+			posts.POST("/:id/share", h.Stats.IncrementShare)  // -> /api/posts/:id/share
+		}
+
+		// Admin routes within /api
+		admin := api.Group("/admin") // -> /api/admin grubu
+		admin.Use(middleware.AuthMiddleware(jwtSecret))
+		{
+			setupAdminRoutes(admin, h) // setupAdminRoutes fonksiyonu artık /api/admin altındaki grupları alacak
+		}
 	}
 }
 
