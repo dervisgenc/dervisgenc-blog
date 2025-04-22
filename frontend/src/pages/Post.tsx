@@ -164,7 +164,7 @@ export default function PostPage() {
                                 : 'hover:bg-gray-100 focus:bg-gray-100'
                             }
                             ${isShared
-                                ? 'text-cyan-500 dark:text-cyan-400'
+                                ? 'text-cyan dark:text-cyan-400'
                                 : 'text-gray-600 dark:text-gray-400'
                             }
                         `}
