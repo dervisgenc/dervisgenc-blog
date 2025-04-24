@@ -2,7 +2,6 @@
 
 import { GitHubLogoIcon, InstagramLogoIcon, TwitterLogoIcon } from "@radix-ui/react-icons"
 import { Linkedin, Mail, MapPin, Globe, BookOpen } from "lucide-react"
-import { ContactItem } from "@/components/ContactItem"
 import { SkillBadge } from "@/components/SkillBadge"
 import { CVSection } from "@/components/CVSection"
 import { ProjectItem } from "@/components/ProjectItem"
@@ -29,7 +28,7 @@ export default function AboutMe() {
                 <div className="w-40 h-40 md:w-48 md:h-48 rounded-full overflow-hidden border-4 border-cyan-400 mb-6">
                   <img src="/portre.jpg" alt="Derviş Genç" className="w-full h-full object-cover" />
                 </div>
-                <h1 className="text-4xl md:text-5xl font-bold mb-2 animate-gradient-text bg-gradient-to-r from-teal-500 via-purple-500 to-orange-500 bg-clip-text text-transparent text-center md:text-left">
+                <h1 className="text-4xl md:text-5xl font-bold mb-2 animate-gradient-text bg-gradient-to-r from-cyan-500 via-blue-500 to-pink-500 bg-clip-text text-transparent text-center md:text-left">
                   Derviş Genç
                 </h1>
                 <p className="text-lg text-skin-muted text-center md:text-left">Computer Engineering Student</p>
@@ -50,48 +49,97 @@ export default function AboutMe() {
                 {/* Contact Info moved here for better balance */}
                 <div className="pt-4 border-t border-border">
                   <h2 className="text-xl font-semibold mb-4 text-cyan-400">Connect with Me</h2>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-
-                    {/* Remove hardcoded text colors from icons */}
-                    <ContactItem
-                      icon={<Mail className="h-5 w-5" />}
-                      text="0dervisgenc@gmail.com"
+                  {/* Updated grid items: reduced gap and added border hover */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3"> {/* Reduced gap */}
+                    {/* Email */}
+                    <a
                       href="mailto:0dervisgenc@gmail.com"
-                    />
-                    {/* Blog link added to Connect with Me section */}
-                    <ContactItem
-                      icon={<BookOpen className="h-5 w-5" />}
-                      text="My Blog"
-                      href="https://blog.dervisgenc.com"
-                      highlight={true}
-                    />
-                    <ContactItem icon={<MapPin className="h-5 w-5" />} text="Istanbul, Turkey" />
-                    <ContactItem
-                      icon={<GitHubLogoIcon className="h-5 w-5" />}
-                      text="github.com/dervisgenc"
-                      href="https://github.com/dervisgenc"
-                    />
-                    <ContactItem
-                      icon={<Linkedin className="h-5 w-5" />}
-                      text="linkedin.com/in/dervisgenc"
-                      href="https://www.linkedin.com/in/dervisgenc/"
-                    />
-                    <ContactItem
-                      icon={<InstagramLogoIcon className="h-5 w-5" />}
-                      text="Instagram"
-                      href="https://www.instagram.com/dervis_genc/"
-                    />
-                    <ContactItem
-                      icon={<TwitterLogoIcon className="h-5 w-5" />}
-                      text="Twitter / X"
-                      href="https://x.com/1sabredendervis"
-                    />
-                    <ContactItem
-                      icon={<Globe className="h-5 w-5" />}
-                      text="dervisgenc.com"
-                      href="https://dervisgenc.com"
-                    />
+                      className="flex items-center gap-3 p-3 bg-skin-card-muted rounded-lg border border-transparent hover:border-skin-accent hover:bg-skin-card-hover hover:scale-[1.02] transition-all duration-200 group" // Added border, adjusted scale
+                    >
+                      <Mail className="h-5 w-5 text-skin-icon group-hover:text-cyan-400 transition-colors" />
+                      <span className="text-skin-base group-hover:text-skin-accent transition-colors">
+                        0dervisgenc@gmail.com
+                      </span>
+                    </a>
 
+                    {/* Blog Link - Special Styling */}
+                    <a
+                      href="https://blog.dervisgenc.com"
+                      className="flex items-center gap-3 p-3 bg-cyan-900/30 border border-cyan-700 rounded-lg hover:bg-cyan-800/50 hover:border-cyan-600 hover:scale-[1.02] transition-all duration-200 group" // Adjusted scale, added hover border
+                    >
+                      <BookOpen className="h-5 w-5 text-cyan-400" />
+                      <span className="text-cyan-300 font-medium group-hover:text-cyan-200 transition-colors">
+                        My Blog
+                      </span>
+                    </a>
+
+                    {/* GitHub */}
+                    <a
+                      href="https://github.com/dervisgenc"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-3 p-3 bg-skin-card-muted rounded-lg border border-transparent hover:border-skin-accent hover:bg-skin-card-hover hover:scale-[1.02] transition-all duration-200 group" // Added border, adjusted scale
+                    >
+                      <GitHubLogoIcon className="h-5 w-5 text-skin-icon group-hover:text-skin-accent transition-colors" />
+                      <span className="text-skin-base group-hover:text-skin-accent transition-colors">
+                        github.com/dervisgenc
+                      </span>
+                    </a>
+
+                    {/* LinkedIn */}
+                    <a
+                      href="https://www.linkedin.com/in/dervisgenc/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-3 p-3 bg-skin-card-muted rounded-lg border border-transparent hover:border-blue-500 hover:bg-skin-card-hover hover:scale-[1.02] transition-all duration-200 group" // Added border (themed), adjusted scale
+                    >
+                      <Linkedin className="h-5 w-5 text-skin-icon group-hover:text-blue-500 transition-colors" />
+                      <span className="text-skin-base group-hover:text-skin-accent transition-colors">
+                        linkedin.com/in/dervisgenc
+                      </span>
+                    </a>
+
+                    {/* Instagram */}
+                    <a
+                      href="https://www.instagram.com/dervis_genc/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-3 p-3 bg-skin-card-muted rounded-lg border border-transparent hover:border-pink-500 hover:bg-skin-card-hover hover:scale-[1.02] transition-all duration-200 group" // Added border (themed), adjusted scale
+                    >
+                      <InstagramLogoIcon className="h-5 w-5 text-skin-icon group-hover:text-pink-500 transition-colors" />
+                      <span className="text-skin-base group-hover:text-skin-accent transition-colors">Instagram</span>
+                    </a>
+
+                    {/* Twitter / X */}
+                    <a
+                      href="https://x.com/1sabredendervis"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-3 p-3 bg-skin-card-muted rounded-lg border border-transparent hover:border-sky-500 hover:bg-skin-card-hover hover:scale-[1.02] transition-all duration-200 group" // Added border (themed), adjusted scale
+                    >
+                      <TwitterLogoIcon className="h-5 w-5 text-skin-icon group-hover:text-sky-500 transition-colors" />
+                      <span className="text-skin-base group-hover:text-skin-accent transition-colors">
+                        Twitter / X
+                      </span>
+                    </a>
+
+                    {/* Personal Website */}
+                    <a
+                      href="https://dervisgenc.com"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-3 p-3 bg-skin-card-muted rounded-lg border border-transparent hover:border-green-500 hover:bg-skin-card-hover hover:scale-[1.02] transition-all duration-200 group" // Added border (themed), adjusted scale
+                    >
+                      <Globe className="h-5 w-5 text-skin-icon group-hover:text-green-500 transition-colors" />
+                      <span className="text-skin-base group-hover:text-skin-accent transition-colors">
+                        dervisgenc.com
+                      </span>
+                    </a>
+                    {/* Location (Not a link) */}
+                    <div className="flex items-center gap-3 p-3 bg-skin-card-muted rounded-lg border border-transparent group"> {/* Added border */}
+                      <MapPin className="h-5 w-5 text-skin-icon" />
+                      <span className="text-skin-base">Istanbul, Turkey</span>
+                    </div>
                   </div>
                 </div>
               </div>
