@@ -1,0 +1,9 @@
+# *
+User-agent: *
+Allow: /
+
+# Host
+Host: https://dervisgenc.com
+
+# Sitemaps
+Sitemap: https://dervisgenc.com/sitemap.xml
