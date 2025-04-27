@@ -6,7 +6,7 @@ import { Heart } from "lucide-react"
 import { toast } from "@/components/hooks/use-toast"
 
 interface PostLikeButtonProps {
-  postId: string
+  postId: number // Changed from string to number
   initialLikes: number
 }
 

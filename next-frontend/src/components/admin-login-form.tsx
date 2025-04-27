@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { toast } from "@/components/hooks/use-toast"
 
 interface AdminLoginFormProps {
-  onLoginResult: (success: boolean) => void
+  onLoginResult: (success: boolean, token?: string) => void
 }
 
 export default function AdminLoginForm({ onLoginResult }: AdminLoginFormProps) {
@@ -21,25 +21,29 @@ export default function AdminLoginForm({ onLoginResult }: AdminLoginFormProps) {
     setIsLoading(true)
 
     try {
-      // In a real app, this would be an API call to /api/admin/login
-      // const response = await fetch('/api/admin/login', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ username, password }),
-      // });
+      // Get API URL from environment variable or use default
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://blog.dervisgenc.com/api"
 
-      // if (!response.ok) throw new Error('Invalid credentials');
-      // const data = await response.json();
-      // localStorage.setItem('token', data.token);
+      const response = await fetch(`${apiUrl}/admin/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+      });
 
-      // Simulate API call for demo
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Invalid credentials');
+      }
 
-      // For demo purposes, accept any non-empty credentials
-      if (username && password) {
-        onLoginResult(true)
+      const data = await response.json();
+
+      // If successful, store token and call onLoginResult
+      if (data.token) {
+        // Store token in localStorage for later use
+        localStorage.setItem('token', data.token);
+        onLoginResult(true, data.token);
       } else {
-        throw new Error("Please enter both username and password")
+        throw new Error("No token received from server");
       }
     } catch (error) {
       toast({
@@ -47,7 +51,7 @@ export default function AdminLoginForm({ onLoginResult }: AdminLoginFormProps) {
         description: error instanceof Error ? error.message : "Invalid credentials",
         variant: "destructive",
       })
-      onLoginResult(false)
+      onLoginResult(false);
     } finally {
       setIsLoading(false)
     }

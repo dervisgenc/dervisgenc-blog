@@ -1,78 +1,85 @@
 import Link from "next/link"
 import Image from "next/image"
-import { Card, CardContent } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Clock } from "lucide-react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { PostListItem } from "@/types" // Assuming PostListItem is defined in types
 
-// Mock data for related posts
-const relatedPosts = [
+// Mock data for related posts - Replace with API call
+const mockRelatedPosts: PostListItem[] = [
   {
-    id: "2",
-    title: "The Rise of Quantum Computing and Its Impact on Encryption",
-    coverImage: "/placeholder.svg?height=400&width=600",
-    date: "18 Apr 2025",
-    readTime: "7 min read",
-    category: "Cryptography",
+    id: 2,
+    title: "The Rise of AI in Cybersecurity: Opportunities and Challenges",
+    summary: "Exploring how artificial intelligence is transforming the cybersecurity landscape.",
+    image_url: "/placeholder.svg?height=200&width=300",
+    read_time: 6,
+    like_count: 98,
+    created_at: "2025-04-15T10:00:00Z",
   },
   {
-    id: "6",
-    title: "Ethical Hacking: Tools and Techniques for Security Professionals",
-    coverImage: "/placeholder.svg?height=400&width=600",
-    date: "20 Apr 2025",
-    readTime: "6 min read",
-    category: "Cybersecurity",
+    id: 3,
+    title: "Securing Your Smart Home: A Comprehensive Guide",
+    summary: "Practical tips and strategies to protect your connected home devices from cyber threats.",
+    image_url: "/placeholder.svg?height=200&width=300",
+    read_time: 7,
+    like_count: 115,
+    created_at: "2025-04-10T14:30:00Z",
   },
   {
-    id: "7",
-    title: "Securing Your Digital Life: A Comprehensive Guide",
-    coverImage: "/placeholder.svg?height=400&width=600",
-    date: "15 Apr 2025",
-    readTime: "8 min read",
-    category: "Privacy",
+    id: 4,
+    title: "Understanding Phishing Attacks and How to Avoid Them",
+    summary: "Learn to identify and protect yourself from common phishing scams.",
+    image_url: "/placeholder.svg?height=200&width=300",
+    read_time: 4,
+    like_count: 76,
+    created_at: "2025-04-05T09:15:00Z",
   },
 ]
 
-interface RelatedPostsProps {
-  currentPostId: string
+// This would be replaced with a database query or API call in a real application
+async function getRelatedPosts(currentPostId: number): Promise<PostListItem[]> {
+  // Simulate fetching posts and filtering out the current one
+  // In a real app, you might fetch based on tags, category, etc.
+  return mockRelatedPosts.filter((post) => post.id !== currentPostId).slice(0, 3) // Limit to 3 related posts
 }
 
-export default function RelatedPosts({ currentPostId }: RelatedPostsProps) {
-  // In a real app, you would filter posts related to the current one
-  // For now, we'll just use our mock data
+interface RelatedPostsProps {
+  currentPostId: number // Changed from string to number
+}
+
+export default async function RelatedPosts({ currentPostId }: RelatedPostsProps) {
+  const relatedPosts = await getRelatedPosts(currentPostId)
+
+  if (!relatedPosts || relatedPosts.length === 0) {
+    return null // Don't render anything if no related posts
+  }
 
   return (
-    <div className="mb-6">
-      <h3 className="mb-4 text-xl font-bold">Related Articles</h3>
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
+    <section>
+      <h2 className="mb-4 text-2xl font-bold">Related Posts</h2>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {relatedPosts.map((post) => (
-          <Card key={post.id} className="overflow-hidden">
-            <div className="relative aspect-video overflow-hidden">
-              <Image
-                src={post.coverImage || "/placeholder.svg"}
-                alt={post.title}
-                fill
-                className="object-cover transition-transform duration-300 hover:scale-105"
-              />
-            </div>
-            <CardContent className="p-3">
-              <div className="mb-1 flex items-center gap-2">
-                <Badge variant="outline" className="text-xs">
-                  {post.category}
-                </Badge>
-              </div>
-              <h3 className="mb-2 line-clamp-2 text-sm font-semibold leading-tight">
-                <Link href={`/post/${post.id}`} className="hover:text-cyan-400">
+          <Link key={post.id} href={`/post/${post.id}`} className="group block">
+            <Card className="h-full overflow-hidden transition-shadow duration-300 ease-in-out group-hover:shadow-md">
+              <CardHeader className="p-0">
+                <div className="relative aspect-video w-full overflow-hidden">
+                  <Image
+                    src={post.image_url || "/placeholder.svg"}
+                    alt={post.title}
+                    fill
+                    className="object-cover transition-transform duration-300 ease-in-out group-hover:scale-105"
+                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                  />
+                </div>
+              </CardHeader>
+              <CardContent className="p-3">
+                <CardTitle className="mb-1 line-clamp-2 text-base font-semibold leading-tight group-hover:text-cyan-600">
                   {post.title}
-                </Link>
-              </h3>
-              <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                <Clock className="h-3 w-3" />
-                <span>{post.readTime}</span>
-              </div>
-            </CardContent>
-          </Card>
+                </CardTitle>
+                {/* Optionally add summary or date here */}
+              </CardContent>
+            </Card>
+          </Link>
         ))}
       </div>
-    </div>
+    </section>
   )
 }

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react"
 import { Editor } from "@tinymce/tinymce-react"
+import { useTheme } from "next-themes" // Import useTheme
 
 interface PostEditorProps {
   value: string
@@ -10,23 +11,24 @@ interface PostEditorProps {
 
 export default function PostEditor({ value, onChange }: PostEditorProps) {
   const editorRef = useRef<any>(null)
+  const { resolvedTheme } = useTheme() // Get the resolved theme (light or dark)
 
-  useEffect(() => {
-    // Clean up TinyMCE on component unmount
-    return () => {
-      if (editorRef.current && editorRef.current.editor) {
-        editorRef.current.editor.destroy()
-      }
-    }
-  }, [])
+  // Determine skin and content CSS based on the theme
+  const skin = resolvedTheme === "dark" ? "oxide-dark" : "oxide"
+  const contentCss = resolvedTheme === "dark" ? "dark" : "default"
+
+  // No need for useEffect cleanup with the key prop approach for theme changes
 
   return (
     <div className="border rounded-md">
       <Editor
-        apiKey="no-api-key" // In a real app, you would use your TinyMCE API key
+        // Add key prop based on theme to force re-render on theme change
+        key={resolvedTheme}
+        apiKey={process.env.NEXT_PUBLIC_TINYMCE_API_KEY || ""}
         onInit={(evt, editor) => (editorRef.current = editor)}
-        initialValue={value}
-        onEditorChange={(content) => onChange(content)}
+        // Use value prop for controlled component behavior
+        value={value}
+        onEditorChange={(content, editor) => onChange(content)} // Pass content to parent
         init={{
           height: 500,
           menubar: true,
@@ -56,8 +58,9 @@ export default function PostEditor({ value, onChange }: PostEditorProps) {
             "alignright alignjustify | bullist numlist outdent indent | " +
             "removeformat | help",
           content_style: "body { font-family:Helvetica,Arial,sans-serif; font-size:14px }",
-          skin: window.matchMedia("(prefers-color-scheme: dark)").matches ? "oxide-dark" : "oxide",
-          content_css: window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "default",
+          // Dynamically set skin and content_css
+          skin: skin,
+          content_css: contentCss,
         }}
       />
     </div>

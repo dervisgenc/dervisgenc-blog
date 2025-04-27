@@ -1,69 +1,82 @@
 import Link from "next/link"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 import { Clock, Calendar } from "lucide-react"
 import PostList from "@/components/post-list"
+import { PostListItem, PaginatedPostResponse } from "@/types"
+import { formatDistanceToNow } from "date-fns"
+import { Separator } from "@/components/ui/separator"
 
-// Mock data for featured post
-const featuredPost = {
-  id: "1",
-  title: "Understanding Zero-Day Exploits: The Silent Threats",
-  excerpt:
-    "Zero-day vulnerabilities represent one of the most dangerous threats in cybersecurity. Learn how they work and how to protect yourself.",
-  coverImage: "/placeholder.svg?height=600&width=1200",
-  date: "22 Apr 2025",
-  readTime: "5 min read",
-  category: "Cybersecurity",
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://blog.dervisgenc.com/api"
+
+async function getFeaturedPost(): Promise<PostListItem | null> {
+  try {
+    // Fetch the very first post (most recent)
+    const response = await fetch(`${API_URL}/posts/paginated?page=1&size=1`, {
+      next: { revalidate: 3600 }, // Revalidate every hour
+    })
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+    const data: PaginatedPostResponse = await response.json()
+    return data.posts.length > 0 ? data.posts[0] : null
+  } catch (error) {
+    console.error("Failed to fetch featured post:", error)
+    return null // Return null on error
+  }
 }
 
-export default function Home() {
+export default async function Home() {
+  const featuredPost = await getFeaturedPost()
+
   return (
     <div className="container py-6">
       {/* Featured Post */}
-      <section className="mb-12">
-        <Card className="overflow-hidden border-none bg-transparent">
-          <div className="grid gap-6 md:grid-cols-2">
-            <div className="relative aspect-video overflow-hidden rounded-lg md:aspect-auto md:h-full">
+      {featuredPost && (
+        <section className="mb-6">
+          <div className="grid gap-4 md:grid-cols-5 md:gap-6">
+            {/* Image container spans 2 columns */}
+            <div className="relative aspect-[16/10] overflow-hidden rounded-lg md:col-span-2">
               <Image
-                src={featuredPost.coverImage || "/placeholder.svg"}
+                src={featuredPost.image_url || "/placeholder.svg"}
                 alt={featuredPost.title}
                 fill
                 className="object-cover"
                 priority
+                sizes="(max-width: 768px) 100vw, 40vw"
               />
             </div>
-            <div className="flex flex-col justify-center">
-              <Badge className="mb-2 w-fit bg-cyan-600 hover:bg-cyan-700">{featuredPost.category}</Badge>
-              <h1 className="mb-2 text-2xl font-bold leading-tight tracking-tight md:text-3xl lg:text-4xl">
+            {/* Text content spans 3 columns */}
+            <div className="flex flex-col justify-center md:col-span-3">
+              <h1 className="mb-1 text-lg font-semibold leading-tight tracking-tight md:text-xl lg:text-xl">
                 {featuredPost.title}
               </h1>
-              <p className="mb-4 text-muted-foreground">{featuredPost.excerpt}</p>
-              <div className="mb-4 flex flex-wrap items-center gap-4">
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                    <Calendar className="h-4 w-4" />
-                    <span>{featuredPost.date}</span>
-                  </div>
-                  <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                    <Clock className="h-4 w-4" />
-                    <span>{featuredPost.readTime}</span>
-                  </div>
+              <p className="mb-2 line-clamp-2 text-xs text-muted-foreground md:line-clamp-3 md:text-sm">{featuredPost.summary}</p>
+              <div className="mb-2 flex flex-wrap items-center gap-3">
+                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <Calendar className="h-3 w-3" />
+                  <span>{formatDistanceToNow(new Date(featuredPost.created_at), { addSuffix: true })}</span>
+                </div>
+                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <Clock className="h-3 w-3" />
+                  <span>{featuredPost.read_time} min read</span>
                 </div>
               </div>
-              <Button asChild className="w-fit bg-cyan-600 hover:bg-cyan-700">
+              <Button asChild size="sm" className="mt-1 w-fit bg-cyan-600 hover:bg-cyan-700">
                 <Link href={`/post/${featuredPost.id}`}>Read Article</Link>
               </Button>
             </div>
           </div>
-        </Card>
-      </section>
+        </section>
+      )}
+
+      {/* Separator */}
+      {featuredPost && <Separator className="my-8" />}
 
       {/* Latest Posts */}
       <section>
-        <div className="mb-6">
-          <h2 className="text-2xl font-bold">Latest Posts</h2>
+        <div className="mb-4">
+          <h2 className="text-xl font-bold md:text-2xl">Latest Posts</h2>
         </div>
         <PostList />
       </section>

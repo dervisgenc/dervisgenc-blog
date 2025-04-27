@@ -2,100 +2,101 @@ import Image from "next/image"
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Clock } from "lucide-react"
 import PostLikeButton from "@/components/post-like-button"
 import PostShareButton from "@/components/post-share-button"
 import RelatedPosts from "@/components/related-posts"
 import { CalendarIcon, ArrowLeftIcon } from "@radix-ui/react-icons"
+import { PostDetail, ErrorResponse, PaginatedPostResponse, PostListItem } from "@/types"
+import { formatDistanceToNow } from "date-fns"
 
-type PostType = {
-  id: string;
-  title: string;
-  content: string;
-  coverImage: string;
-  date: string;
-  readTime: string;
-  category: string;
-  tags: string[];
-  likes: number;
-  comments: number;
-};
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://blog.dervisgenc.com/api"
 
-// Mock data for a single post
-const posts: { [key: string]: PostType } = {
-  "1": {
-    id: "1",
-    title: "Understanding Zero-Day Exploits: The Silent Threats",
-    content: `
-      <p>Zero-day vulnerabilities represent one of the most dangerous threats in cybersecurity. These are flaws in software or hardware that are unknown to those who should be interested in mitigating the vulnerability (including the vendor of the target software).</p>
-      
-      <p>The term "zero-day" refers to the fact that developers have had zero days to address and patch the vulnerability. Once the vulnerability becomes known, developers have literally "zero days" to fix it before hackers can exploit it.</p>
-      
-      <h2>Why Zero-Day Exploits Are Dangerous</h2>
-      
-      <p>Zero-day exploits are particularly dangerous for several reasons:</p>
-      
-      <ul>
-        <li>They are unknown to the software vendor, meaning there are no patches or fixes available.</li>
-        <li>Traditional security measures like antivirus software may not detect them since they're previously unknown threats.</li>
-        <li>They can remain undetected for months or even years, allowing attackers prolonged access to compromised systems.</li>
-        <li>They are highly valued in underground markets, with prices ranging from thousands to millions of dollars.</li>
-      </ul>
-      
-      <h2>Notable Zero-Day Attacks</h2>
-      
-      <p>Several high-profile cyber attacks have leveraged zero-day vulnerabilities:</p>
-      
-      <ul>
-        <li><strong>Stuxnet</strong>: This sophisticated computer worm used multiple zero-day exploits to target Iranian nuclear facilities.</li>
-        <li><strong>Sony Pictures Hack</strong>: Attackers used zero-day vulnerabilities to breach Sony's network, stealing confidential data and causing extensive damage.</li>
-        <li><strong>Equifax Breach</strong>: Attackers exploited a zero-day vulnerability in Apache Struts, compromising sensitive data of 147 million people.</li>
-      </ul>
-      
-      <h2>Protecting Against Zero-Day Exploits</h2>
-      
-      <p>While it's challenging to defend against unknown threats, organizations can take several measures to minimize risk:</p>
-      
-      <ol>
-        <li><strong>Implement defense-in-depth strategies</strong>: Use multiple layers of security to create redundancy.</li>
-        <li><strong>Keep systems updated</strong>: While this won't protect against zero-days initially, it reduces the attack surface.</li>
-        <li><strong>Use behavior-based detection</strong>: Modern security solutions can detect suspicious behavior even if the specific threat is unknown.</li>
-        <li><strong>Employ the principle of least privilege</strong>: Limit user permissions to reduce the potential impact of an exploit.</li>
-        <li><strong>Regularly back up critical data</strong>: Ensure you can recover if a zero-day attack succeeds.</li>
-      </ol>
-      
-      <h2>The Future of Zero-Day Vulnerabilities</h2>
-      
-      <p>As software becomes more complex and interconnected, the potential for zero-day vulnerabilities increases. However, advancements in artificial intelligence and machine learning are improving our ability to detect unusual patterns that might indicate a zero-day exploit.</p>
-      
-      <p>Bug bounty programs, where companies pay security researchers to find and report vulnerabilities, have also become an important tool in discovering potential zero-days before malicious actors can exploit them.</p>
-      
-      <p>The battle against zero-day exploits represents the cutting edge of cybersecurity—a constant race between attackers seeking to discover and exploit unknown vulnerabilities and defenders working to identify and patch them before they can be used maliciously.</p>
-    `,
-    coverImage: "/placeholder.svg?height=600&width=1200",
-    date: "22 Apr 2025",
-    readTime: "5 min read",
-    category: "Cybersecurity",
-    tags: ["security", "vulnerabilities", "hacking", "defense"],
-    likes: 142,
-    comments: 38,
-  },
+// Helper function to capitalize the first letter
+const capitalizeFirstLetter = (string: string) => {
+  if (!string) return string;
+  return string.charAt(0).toUpperCase() + string.slice(1);
 }
 
-// This would be replaced with a database query in a real application
-async function getPost(id: string) {
-  // Simulate a database lookup
-  return posts[id] || null
+// Fetch post data from the backend API
+async function getPost(id: string): Promise<PostDetail | null> {
+  try {
+    // Convert string ID to number for API call
+    const numericId = parseInt(id, 10);
+
+    if (isNaN(numericId)) {
+      return null;
+    }
+
+    const response = await fetch(`${API_URL}/posts/${numericId}`, {
+      next: { revalidate: 3600 },
+    })
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        return null
+      }
+      console.error(`API Error: ${response.status} ${response.statusText}`)
+      return null
+    }
+
+    const data: PostDetail = await response.json()
+    return data
+  } catch (error) {
+    console.error("Failed to fetch post:", error)
+    return null
+  }
 }
 
-export default async function PostPage({ params }: { params: { id: string } }) {
-  const post = await getPost(params.id)
+// Function to generate static paths for Next.js
+export async function generateStaticParams() {
+  try {
+    // Fetch posts for static generation
+    const response = await fetch(`${API_URL}/posts/paginated?page=1&size=10`, {
+      next: { revalidate: 3600 }
+    });
+
+    if (!response.ok) {
+      return [];
+    }
+
+    const data = await response.json();
+
+    // Make sure we got valid data with posts array
+    if (!data || !data.posts || !Array.isArray(data.posts)) {
+      return [];
+    }
+
+    // Return array of objects with string id
+    return data.posts.map((post: PostListItem) => ({
+      id: String(post.id)
+    }));
+  } catch (error) {
+    console.error("Error generating static params:", error);
+    return [];
+  }
+}
+
+// Type for page props
+type PageProps = {
+  params: Promise<{ id: string }> | { id: string };
+}
+
+export default async function PostPage({ params }: PageProps) {
+  // Await the params if it's a Promise
+  const resolvedParams = 'then' in params ? await params : params;
+  const postId = resolvedParams.id;
+
+  const post = await getPost(postId);
 
   if (!post) {
     notFound()
   }
+
+  // Get the relative time string and capitalize it
+  const relativeDate = formatDistanceToNow(new Date(post.created_at), { addSuffix: true })
+  const formattedDate = capitalizeFirstLetter(relativeDate);
 
   return (
     <div className="container py-6">
@@ -110,25 +111,24 @@ export default async function PostPage({ params }: { params: { id: string } }) {
 
       <article className="mx-auto max-w-3xl">
         <div className="mb-6 space-y-4">
-          <Badge className="bg-cyan-600 hover:bg-cyan-700">{post.category}</Badge>
           <h1 className="text-3xl font-bold leading-tight tracking-tight md:text-4xl">{post.title}</h1>
 
           <div className="flex flex-wrap items-center gap-6">
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-1 text-sm text-muted-foreground">
                 <CalendarIcon className="h-4 w-4" />
-                <span>{post.date}</span>
+                <span>{formattedDate}</span>
               </div>
               <div className="flex items-center gap-1 text-sm text-muted-foreground">
                 <Clock className="h-4 w-4" />
-                <span>{post.readTime}</span>
+                <span>{post.read_time} min read</span>
               </div>
             </div>
           </div>
         </div>
 
         <div className="relative mb-6 aspect-video overflow-hidden rounded-lg">
-          <Image src={post.coverImage || "/placeholder.svg"} alt={post.title} fill className="object-cover" priority />
+          <Image src={post.image_url || "/placeholder.svg"} alt={post.title} fill className="object-cover" priority />
         </div>
 
         <div
@@ -136,16 +136,8 @@ export default async function PostPage({ params }: { params: { id: string } }) {
           dangerouslySetInnerHTML={{ __html: post.content }}
         />
 
-        <div className="mb-6 flex flex-wrap gap-2">
-          {post.tags.map((tag) => (
-            <Badge key={tag} variant="outline">
-              #{tag}
-            </Badge>
-          ))}
-        </div>
-
         <div className="mb-6 flex items-center justify-between border-y border-border py-4">
-          <PostLikeButton postId={post.id} initialLikes={post.likes} />
+          <PostLikeButton postId={post.id} initialLikes={post.like_count} />
           <PostShareButton postId={post.id} title={post.title} />
         </div>
 

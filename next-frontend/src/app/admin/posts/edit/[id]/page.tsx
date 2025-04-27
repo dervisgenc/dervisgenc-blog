@@ -12,112 +12,109 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { Eye, Save, Trash2 } from "lucide-react"
-import PostEditor from "@/components/post-editor"
+import DynamicPostEditor from "@/components/dynamic-post-editor"
 import ImageUpload from "@/components/image-upload"
 import DeletePostDialog from "@/components/delete-post-dialog"
 import { ArrowLeftIcon } from "@radix-ui/react-icons"
-import { useToast } from "@/components/hooks/use-toast"
+import { toast } from "sonner"
+import { getAuthHeaders, isAuthenticated } from "@/utils/auth"
+import type { Post } from "@/types"
 
-// Mock data for a post
-const mockPost = {
-  id: "1",
-  title: "Understanding Zero-Day Exploits: The Silent Threats",
-  summary:
-    "Zero-day vulnerabilities represent one of the most dangerous threats in cybersecurity. Learn how they work and how to protect yourself.",
-  content: `<p>Zero-day vulnerabilities represent one of the most dangerous threats in cybersecurity. These are flaws in software or hardware that are unknown to those who should be interested in mitigating the vulnerability (including the vendor of the target software).</p>
-      
-  <p>The term "zero-day" refers to the fact that developers have had zero days to address and patch the vulnerability. Once the vulnerability becomes known, developers have literally "zero days" to fix it before hackers can exploit it.</p>
-  
-  <h2>Why Zero-Day Exploits Are Dangerous</h2>
-  
-  <p>Zero-day exploits are particularly dangerous for several reasons:</p>
-  
-  <ul>
-    <li>They are unknown to the software vendor, meaning there are no patches or fixes available.</li>
-    <li>Traditional security measures like antivirus software may not detect them since they're previously unknown threats.</li>
-    <li>They can remain undetected for months or even years, allowing attackers prolonged access to compromised systems.</li>
-    <li>They are highly valued in underground markets, with prices ranging from thousands to millions of dollars.</li>
-  </ul>`,
-  coverImage: "/placeholder.svg?height=600&width=1200",
-  category: "cybersecurity",
-  tags: "security, vulnerabilities, hacking, defense",
-  isPublished: true,
-}
 export default function EditPostPage({ params }: { params: { id: string } }) {
   const router = useRouter()
-  const { toast } = useToast()
+  const postId = params.id
   const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isPreview, setIsPreview] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
-  const [post, setPost] = useState({
-    id: "",
-    title: "",
-    summary: "",
-    content: "",
-    coverImage: "",
-    category: "",
-    tags: "",
-    isPublished: true,
-  })
+  const [currentCoverImageUrl, setCurrentCoverImageUrl] = useState<string | null>(null)
+  const [post, setPost] = useState<Post | null>(null)
+
+  useEffect(() => {
+    if (!isAuthenticated()) {
+      router.push("/admin")
+      toast("Unauthorized", {
+        description: "Please log in to edit posts.",
+        action: { label: "Close", onClick: () => { } },
+      })
+    }
+  }, [router])
 
   useEffect(() => {
     const fetchPost = async () => {
-      try {
-        // In a real app, this would be an API call to get the post
-        // const response = await fetch(`/api/admin/posts/${params.id}`);
-        // if (!response.ok) throw new Error('Failed to fetch post');
-        // const data = await response.json();
-        // setPost(data);
+      if (!isAuthenticated() || !postId) return
 
-        // Simulate API call with mock data
-        await new Promise((resolve) => setTimeout(resolve, 500))
+      setIsLoading(true)
+      try {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://blog.dervisgenc.com/api"
+        const response = await fetch(`${apiUrl}/admin/posts/${postId}`, {
+          headers: getAuthHeaders(),
+        })
+
+        if (!response.ok) {
+          if (response.status === 401) {
+            router.push("/admin")
+            toast("Session expired", {
+              description: "Please log in again.",
+              action: { label: "Close", onClick: () => { } },
+            })
+            return
+          }
+          if (response.status === 404) {
+            throw new Error("Post not found")
+          }
+          const errorData = await response.json().catch(() => ({ message: "Failed to fetch post" }))
+          throw new Error(errorData.message || "Failed to fetch post")
+        }
+        const data: Post = await response.json()
         setPost({
-          ...mockPost,
-          id: params.id,
+          ...data,
+          tags: Array.isArray(data.tags) ? data.tags.join(", ") : data.tags || "",
         })
+        setCurrentCoverImageUrl(data.image_url)
       } catch (error) {
-        toast({
-          title: "Error",
-          description: "Failed to load post. Please try again.",
-          variant: "destructive",
+        console.error("Error fetching post:", error)
+        toast("Error", {
+          description: error instanceof Error ? error.message : "Failed to load post. Please try again.",
+          action: { label: "Close", onClick: () => { } },
         })
-        router.push("/admin")
+        if (error instanceof Error && error.message === "Post not found") {
+          router.push("/admin")
+        }
       } finally {
         setIsLoading(false)
       }
     }
 
     fetchPost()
-  }, [params.id, router])
+  }, [postId, router])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
-    setPost((prev) => ({ ...prev, [name]: value }))
+    setPost((prev) => (prev ? { ...prev, [name]: value } : null))
   }
 
   const handleSelectChange = (name: string, value: string) => {
-    setPost((prev) => ({ ...prev, [name]: value }))
+    setPost((prev) => (prev ? { ...prev, [name]: value } : null))
   }
 
   const handleSwitchChange = (name: string, checked: boolean) => {
-    setPost((prev) => ({ ...prev, [name]: checked }))
+    setPost((prev) => (prev ? { ...prev, [name]: checked } : null))
   }
 
   const handleEditorChange = (content: string) => {
-    setPost((prev) => ({ ...prev, content }))
+    setPost((prev) => (prev ? { ...prev, content } : null))
   }
 
-  const handleImageUpload = (imageUrl: string) => {
-    setPost((prev) => ({ ...prev, coverImage: imageUrl }))
+  const handleImageUploaded = (imageUrl: string) => {
+    setCurrentCoverImageUrl(imageUrl)
   }
 
   const handlePreview = () => {
-    if (!post.title) {
-      toast({
-        title: "Title required",
+    if (!post?.title) {
+      toast("Title required", {
         description: "Please add a title before previewing",
-        variant: "destructive",
+        action: { label: "Close", onClick: () => { } },
       })
       return
     }
@@ -128,46 +125,59 @@ export default function EditPostPage({ params }: { params: { id: string } }) {
     setIsPreview(false)
   }
 
-  const handleSave = async (publish: boolean = post.isPublished) => {
-    if (!post.title) {
-      toast({
-        title: "Title required",
+  const handleSave = async (publish?: boolean) => {
+    if (!post || !post.title) {
+      toast("Title required", {
         description: "Please add a title before saving",
-        variant: "destructive",
+        action: { label: "Close", onClick: () => { } },
       })
       return
     }
 
     setIsSubmitting(true)
 
+    const isActive = typeof publish === "boolean" ? publish : post.is_active
+    const payload = {
+      title: post.title,
+      content: post.content || "",
+      description: post.summary || "",
+      readTime: post.read_time || 0,
+      isActive: isActive,
+      imageUrl: currentCoverImageUrl || "",
+    }
+
     try {
-      // In a real app, this would be an API call to update the post
-      // const response = await fetch(`/api/admin/posts/${post.id}`, {
-      //   method: 'PUT',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({
-      //     ...post,
-      //     isPublished: publish,
-      //     tags: post.tags.split(',').map(tag => tag.trim())
-      //   }),
-      // });
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://blog.dervisgenc.com/api"
+      const response = await fetch(`${apiUrl}/admin/posts/${postId}`, {
+        method: "PUT",
+        headers: getAuthHeaders(),
+        body: JSON.stringify(payload),
+      })
 
-      // if (!response.ok) throw new Error('Failed to update post');
+      if (!response.ok) {
+        if (response.status === 401) {
+          router.push("/admin")
+          toast("Session expired", {
+            description: "Please log in again.",
+            action: { label: "Close", onClick: () => { } },
+          })
+          return
+        }
+        const errorData = await response.json().catch(() => ({ error: "Failed to update post" }))
+        throw new Error(errorData.error || "Failed to update post")
+      }
 
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-
-      toast({
-        title: publish ? "Post updated and published" : "Draft updated",
-        description: publish ? "Your post has been updated and published" : "Your draft has been updated",
+      toast(isActive ? "Post updated and published" : "Draft updated", {
+        description: isActive ? "Your post has been updated and published" : "Your draft has been updated",
+        action: { label: "Close", onClick: () => { } },
       })
 
       router.push("/admin")
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to update post. Please try again.",
-        variant: "destructive",
+      console.error("Error updating post:", error)
+      toast("Error", {
+        description: error instanceof Error ? error.message : "Failed to update post. Please try again.",
+        action: { label: "Close", onClick: () => { } },
       })
     } finally {
       setIsSubmitting(false)
@@ -175,31 +185,50 @@ export default function EditPostPage({ params }: { params: { id: string } }) {
   }
 
   const handleDelete = async (permanent = false) => {
+    if (!post) return
+    setIsSubmitting(true)
+
     try {
-      // In a real app, this would be an API call to delete the post
-      // const endpoint = permanent
-      //   ? `/api/admin/posts/${post.id}/permanent`
-      //   : `/api/admin/posts/${post.id}`;
-      // const response = await fetch(endpoint, { method: 'DELETE' });
-      // if (!response.ok) throw new Error('Failed to delete post');
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://blog.dervisgenc.com/api"
+      const endpoint = permanent
+        ? `${apiUrl}/admin/posts/${postId}/permanent`
+        : `${apiUrl}/admin/posts/${postId}`
 
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+      const response = await fetch(endpoint, {
+        method: "DELETE",
+        headers: getAuthHeaders(),
+      })
 
-      toast({
-        title: permanent ? "Post permanently deleted" : "Post moved to trash",
+      if (!response.ok) {
+        if (response.status === 401) {
+          router.push("/admin")
+          toast("Session expired", {
+            description: "Please log in again.",
+            action: { label: "Close", onClick: () => { } },
+          })
+          return
+        }
+        const errorData = await response.json().catch(() => ({ error: "Failed to delete post" }))
+        throw new Error(errorData.error || "Failed to delete post")
+      }
+
+      toast(permanent ? "Post permanently deleted" : "Post moved to trash", {
         description: permanent
           ? "Your post has been permanently deleted"
-          : "Your post has been moved to trash and can be restored later",
+          : "Your post has been moved to trash",
+        action: { label: "Close", onClick: () => { } },
       })
 
       router.push("/admin")
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to delete post. Please try again.",
-        variant: "destructive",
+      console.error("Error deleting post:", error)
+      toast("Error", {
+        description: error instanceof Error ? error.message : "Failed to delete post. Please try again.",
+        action: { label: "Close", onClick: () => { } },
       })
+    } finally {
+      setIsSubmitting(false)
+      setIsDeleteDialogOpen(false)
     }
   }
 
@@ -214,7 +243,20 @@ export default function EditPostPage({ params }: { params: { id: string } }) {
     )
   }
 
+  if (!post) {
+    return (
+      <div className="container py-6 text-center">
+        <h1 className="text-2xl font-bold mb-4">Error</h1>
+        <p className="text-red-500 mb-4">Could not load post data. It might have been deleted or an error occurred.</p>
+        <Button onClick={() => router.push("/admin")} className="mt-4">
+          Back to Admin Dashboard
+        </Button>
+      </div>
+    )
+  }
+
   if (isPreview) {
+    const previewImageUrl = currentCoverImageUrl || "/placeholder.svg"
     return (
       <div className="container py-6">
         <div className="mb-6 flex items-center justify-between">
@@ -230,10 +272,10 @@ export default function EditPostPage({ params }: { params: { id: string } }) {
               className="flex items-center gap-2"
             >
               <Save className="h-4 w-4" />
-              Save as Draft
+              {isSubmitting ? "Saving..." : "Save as Draft"}
             </Button>
             <Button onClick={() => handleSave(true)} disabled={isSubmitting} className="bg-cyan-600 hover:bg-cyan-700">
-              {isSubmitting ? "Publishing..." : "Publish Now"}
+              {isSubmitting ? "Publishing..." : "Update & Publish"}
             </Button>
           </div>
         </div>
@@ -243,21 +285,22 @@ export default function EditPostPage({ params }: { params: { id: string } }) {
             <CardTitle className="text-lg">Preview Mode</CardTitle>
           </CardHeader>
           <CardContent className="p-0">
-            {post.coverImage && (
+            {previewImageUrl && previewImageUrl !== "/placeholder.svg" && (
               <div className="relative aspect-video w-full">
                 <img
-                  src={post.coverImage || "/placeholder.svg"}
-                  alt={post.title}
+                  src={previewImageUrl}
+                  alt={post.title || "Post preview"}
                   className="h-full w-full object-cover"
+                  onError={(e) => { (e.target as HTMLImageElement).src = "/placeholder.svg" }}
                 />
               </div>
             )}
             <div className="p-6">
-              <h1 className="mb-4 text-3xl font-bold">{post.title}</h1>
+              <h1 className="mb-4 text-3xl font-bold">{post.title || "[No Title]"}</h1>
               {post.summary && <p className="mb-6 text-muted-foreground">{post.summary}</p>}
               <div
                 className="prose prose-lg dark:prose-invert max-w-none"
-                dangerouslySetInnerHTML={{ __html: post.content }}
+                dangerouslySetInnerHTML={{ __html: post.content || "<p>No content yet.</p>" }}
               />
             </div>
           </CardContent>
@@ -268,12 +311,20 @@ export default function EditPostPage({ params }: { params: { id: string } }) {
 
   return (
     <div className="container py-6">
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 flex flex-col justify-between gap-4 md:flex-row md:items-center">
         <div>
+          <Button variant="ghost" size="sm" onClick={() => router.back()} className="mb-2 flex items-center gap-1 text-muted-foreground">
+            <ArrowLeftIcon className="h-4 w-4" /> Back
+          </Button>
           <h1 className="text-2xl font-bold">Edit Post</h1>
           <p className="text-muted-foreground">Edit and update your blog post</p>
         </div>
-        <Button variant="destructive" onClick={() => setIsDeleteDialogOpen(true)} className="flex items-center gap-2">
+        <Button
+          variant="destructive"
+          onClick={() => setIsDeleteDialogOpen(true)}
+          className="flex items-center gap-2"
+          disabled={isSubmitting}
+        >
           <Trash2 className="h-4 w-4" />
           Delete Post
         </Button>
@@ -294,6 +345,7 @@ export default function EditPostPage({ params }: { params: { id: string } }) {
                   value={post.title}
                   onChange={handleInputChange}
                   placeholder="Enter post title"
+                  required
                 />
               </div>
               <div className="space-y-2">
@@ -301,7 +353,7 @@ export default function EditPostPage({ params }: { params: { id: string } }) {
                 <Textarea
                   id="summary"
                   name="summary"
-                  value={post.summary}
+                  value={post.summary || ""}
                   onChange={handleInputChange}
                   placeholder="Brief summary of your post"
                   rows={3}
@@ -309,7 +361,7 @@ export default function EditPostPage({ params }: { params: { id: string } }) {
               </div>
               <div className="space-y-2">
                 <Label>Content</Label>
-                <PostEditor value={post.content} onChange={handleEditorChange} />
+                <DynamicPostEditor value={post.content ?? ""} onChange={handleEditorChange} />
               </div>
             </CardContent>
           </Card>
@@ -323,11 +375,14 @@ export default function EditPostPage({ params }: { params: { id: string } }) {
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label>Cover Image</Label>
-                <ImageUpload onImageUploaded={handleImageUpload} currentImage={post.coverImage} />
+                <ImageUpload
+                  onImageUploaded={handleImageUploaded}
+                  currentImage={currentCoverImageUrl ?? undefined}
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="category">Category</Label>
-                <Select value={post.category} onValueChange={(value) => handleSelectChange("category", value)}>
+                <Select value={post.category || ""} onValueChange={(value) => handleSelectChange("category", value)}>
                   <SelectTrigger id="category">
                     <SelectValue placeholder="Select category" />
                   </SelectTrigger>
@@ -345,26 +400,47 @@ export default function EditPostPage({ params }: { params: { id: string } }) {
                 <Input
                   id="tags"
                   name="tags"
-                  value={post.tags}
+                  value={post.tags || ""}
                   onChange={handleInputChange}
                   placeholder="security, hacking, defense (comma separated)"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="readTime">Read Time (minutes)</Label>
+                <Input
+                  id="readTime"
+                  name="read_time"
+                  type="number"
+                  value={post.read_time || 0}
+                  onChange={(e) => {
+                    const value = e.target.value
+                    const parsedValue = value === "" ? 0 : Math.max(0, Number(value))
+                    setPost((prev) => (prev ? { ...prev, read_time: parsedValue } : null))
+                  }}
+                  min="0"
                 />
               </div>
               <div className="flex items-center justify-between space-y-0">
                 <Label htmlFor="published">Published</Label>
                 <Switch
                   id="published"
-                  checked={post.isPublished}
-                  onCheckedChange={(checked) => handleSwitchChange("isPublished", checked)}
+                  name="is_active"
+                  checked={post.is_active}
+                  onCheckedChange={(checked) => handleSwitchChange("is_active", checked)}
                 />
               </div>
             </CardContent>
             <CardFooter className="flex justify-between border-t px-6 py-4">
-              <Button variant="outline" onClick={() => router.back()}>
+              <Button variant="outline" onClick={() => router.back()} disabled={isSubmitting}>
                 Cancel
               </Button>
               <div className="flex gap-2">
-                <Button variant="outline" onClick={handlePreview} className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  onClick={handlePreview}
+                  className="flex items-center gap-2"
+                  disabled={isSubmitting}
+                >
                   <Eye className="h-4 w-4" />
                   Preview
                 </Button>
@@ -380,7 +456,8 @@ export default function EditPostPage({ params }: { params: { id: string } }) {
       <DeletePostDialog
         isOpen={isDeleteDialogOpen}
         onClose={() => setIsDeleteDialogOpen(false)}
-        onDelete={handleDelete}
+        onConfirmDelete={handleDelete}
+        isDeleting={isSubmitting}
       />
     </div>
   )

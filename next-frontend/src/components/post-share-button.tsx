@@ -8,7 +8,7 @@ import { toast } from "@/components/hooks/use-toast"
 import { CopyIcon, CheckIcon } from "@radix-ui/react-icons"
 
 interface PostShareButtonProps {
-  postId: string
+  postId: number
   title: string
 }
 
@@ -34,7 +34,7 @@ export default function PostShareButton({ postId, title }: PostShareButtonProps)
     setTimeout(() => setCopied(false), 2000)
   }
 
-  const trackShare = async (postId: string, platform: string) => {
+  const trackShare = async (postId: number, platform: string) => {
     try {
       // In a real app, this would be an API call to /api/posts/:id/share
       // const response = await fetch(`/api/posts/${postId}/share`, {

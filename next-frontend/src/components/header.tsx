@@ -25,7 +25,7 @@ export default function Header() {
           </Button>
           <Link href="/" className="flex items-center gap-2">
             <span className="text-xl font-bold text-foreground">
-              Cyber<span className="text-cyan">Tron</span>
+              Cyber<span className="text-cyan-500">Tron</span>
             </span>
           </Link>
         </div>
@@ -48,15 +48,15 @@ export default function Header() {
               Home
             </Button>
           </Link>
-          <Link href="/about">
+          <a href="https://dervisgenc.com" target="_blank" rel="noopener noreferrer">
             <Button
               variant="ghost"
               size="sm"
-              className={cn(pathname === "/about" && "bg-accent text-accent-foreground")}
+
             >
               About
             </Button>
-          </Link>
+          </a>
           <Link href="/admin">
             <Button
               variant="ghost"

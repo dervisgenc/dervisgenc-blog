@@ -12,85 +12,82 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
+import { Loader2 } from "lucide-react"
 
+// Define the props interface
 interface DeletePostDialogProps {
   isOpen: boolean
   onClose: () => void
-  onDelete: (permanent: boolean) => void
+  onConfirmDelete: (permanent: boolean) => Promise<void> // Add this prop
+  isDeleting: boolean
+  postTitle?: string // Optional: display post title for confirmation
 }
 
-export default function DeletePostDialog({ isOpen, onClose, onDelete }: DeletePostDialogProps) {
-  const [isDeleting, setIsDeleting] = useState(false)
-  const [showPermanentDelete, setShowPermanentDelete] = useState(false)
+export default function DeletePostDialog({
+  isOpen,
+  onClose,
+  onConfirmDelete, // Destructure the new prop
+  isDeleting,
+  postTitle,
+}: DeletePostDialogProps) {
+  const [permanentDelete, setPermanentDelete] = useState(false)
 
-  const handleDelete = async (permanent: boolean) => {
-    setIsDeleting(true)
-    await onDelete(permanent)
-    setIsDeleting(false)
-    onClose()
-    setShowPermanentDelete(false)
+  const handleConfirm = () => {
+    onConfirmDelete(permanentDelete) // Call the passed function with the permanent flag
   }
 
-  const handleCancel = () => {
-    onClose()
-    setShowPermanentDelete(false)
-  }
-
-  if (showPermanentDelete) {
-    return (
-      <AlertDialog open={isOpen} onOpenChange={onClose}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Permanently Delete Post?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete your post and remove it from our servers.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={handleCancel} disabled={isDeleting}>
-              Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => handleDelete(true)}
-              disabled={isDeleting}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              {isDeleting ? "Deleting..." : "Yes, Delete Permanently"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    )
+  // Reset permanentDelete state when dialog closes or opens
+  // This ensures the checkbox state is fresh each time
+  if (!isOpen && permanentDelete) {
+    setPermanentDelete(false);
   }
 
   return (
-    <AlertDialog open={isOpen} onOpenChange={onClose}>
+    <AlertDialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Delete Post?</AlertDialogTitle>
+          <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
           <AlertDialogDescription>
-            This will move the post to trash. You can restore it later if needed.
+            {permanentDelete
+              ? `This action cannot be undone. This will permanently delete the post "${postTitle || 'this post'}".`
+              : `This action will move the post "${postTitle || 'this post'}" to the trash. You can restore it later.`}
           </AlertDialogDescription>
         </AlertDialogHeader>
-        <AlertDialogFooter className="flex-col sm:flex-row">
-          <AlertDialogCancel onClick={handleCancel} disabled={isDeleting}>
-            Cancel
-          </AlertDialogCancel>
+        <div className="flex items-center space-x-2 py-2">
+          <input
+            type="checkbox"
+            id="permanent-delete"
+            checked={permanentDelete}
+            onChange={(e) => setPermanentDelete(e.target.checked)}
+            className="h-4 w-4 rounded border-gray-300 text-red-600 focus:ring-red-500"
+            disabled={isDeleting}
+          />
+          <label
+            htmlFor="permanent-delete"
+            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+          >
+            Delete permanently
+          </label>
+        </div>
+        <AlertDialogFooter>
+          <AlertDialogCancel onClick={onClose} disabled={isDeleting}>Cancel</AlertDialogCancel>
+          {/* Use the handleConfirm function */}
           <Button
-            variant="outline"
-            onClick={() => setShowPermanentDelete(true)}
+            variant={permanentDelete ? "destructive" : "outline"}
+            onClick={handleConfirm}
             disabled={isDeleting}
-            className="mt-2 sm:mt-0"
           >
-            Delete Permanently
+            {isDeleting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Deleting...
+              </>
+            ) : permanentDelete ? (
+              "Delete Permanently"
+            ) : (
+              "Move to Trash"
+            )}
           </Button>
-          <AlertDialogAction
-            onClick={() => handleDelete(false)}
-            disabled={isDeleting}
-            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-          >
-            {isDeleting ? "Deleting..." : "Move to Trash"}
-          </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

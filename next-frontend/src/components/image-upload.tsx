@@ -2,22 +2,30 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { toast } from "@/components/hooks/use-toast" // Corrected import path
 import { Upload } from "lucide-react"
 import { Cross2Icon } from "@radix-ui/react-icons"
+import { getAuthHeaders } from "@/utils/auth" // Import auth headers utility
+import type { ImageUploadResponse } from "@/types" // Import response type
 
 interface ImageUploadProps {
   onImageUploaded: (imageUrl: string) => void
-  currentImage?: string
+  currentImage?: string // This should be the persistent URL from the backend
 }
 
 export default function ImageUpload({ onImageUploaded, currentImage }: ImageUploadProps) {
   const [isUploading, setIsUploading] = useState(false)
+  // Use currentImage prop to initialize previewUrl
   const [previewUrl, setPreviewUrl] = useState(currentImage || "")
+
+  // Update previewUrl if currentImage prop changes externally
+  useEffect(() => {
+    setPreviewUrl(currentImage || "")
+  }, [currentImage])
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -46,42 +54,52 @@ export default function ImageUpload({ onImageUploaded, currentImage }: ImageUplo
     setIsUploading(true)
 
     try {
-      // In a real app, this would be an API call to upload the image
-      // const formData = new FormData();
-      // formData.append('image', file);
-      // const response = await fetch('/api/admin/images/upload', {
-      //   method: 'POST',
-      //   body: formData,
-      // });
-      // if (!response.ok) throw new Error('Failed to upload image');
-      // const data = await response.json();
-      // const imageUrl = data.url;
+      // Actual API call to upload the image
+      const formData = new FormData()
+      formData.append("image", file)
 
-      // Simulate API call and create a local preview
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-      const imageUrl = URL.createObjectURL(file)
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://blog.dervisgenc.com/api"
+      const response = await fetch(`${apiUrl}/admin/images/upload`, {
+        method: "POST",
+        headers: getAuthHeaders(true), // Use true for FormData
+        body: formData,
+      })
 
-      setPreviewUrl(imageUrl)
-      onImageUploaded(imageUrl)
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: "Failed to upload image" }))
+        throw new Error(errorData.message || `HTTP error! status: ${response.status}`)
+      }
+
+      const data: ImageUploadResponse = await response.json()
+      const persistentImageUrl = data.url // Get the persistent URL from backend
+
+      // Update preview and notify parent component with the persistent URL
+      setPreviewUrl(persistentImageUrl)
+      onImageUploaded(persistentImageUrl)
 
       toast({
         title: "Image uploaded",
         description: "Your image has been uploaded successfully",
       })
     } catch (error) {
+      console.error("Image upload error:", error)
       toast({
         title: "Upload failed",
-        description: "Failed to upload image. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to upload image. Please try again.",
         variant: "destructive",
       })
+      // Optionally revert preview if needed
+      // setPreviewUrl(currentImage || "");
     } finally {
       setIsUploading(false)
+      // Reset file input value to allow re-uploading the same file
+      e.target.value = ""
     }
   }
 
   const handleRemoveImage = () => {
     setPreviewUrl("")
-    onImageUploaded("")
+    onImageUploaded("") // Notify parent that image is removed
   }
 
   return (
@@ -89,16 +107,24 @@ export default function ImageUpload({ onImageUploaded, currentImage }: ImageUplo
       {previewUrl ? (
         <div className="relative">
           <img
-            src={previewUrl || "/placeholder.svg"}
+            // Use previewUrl which holds the persistent URL or the initial currentImage
+            src={previewUrl}
             alt="Cover preview"
             className="aspect-video w-full rounded-md object-cover"
+            // Add error handling for image loading
+            onError={(e) => {
+              console.warn("Failed to load image:", previewUrl)
+                // Optionally set a placeholder if the image fails to load
+                ; (e.target as HTMLImageElement).src = "/placeholder.svg"
+            }}
           />
           <Button
-            type="button"
+            type="button" // Ensure it doesn't submit forms
             variant="destructive"
             size="icon"
-            className="absolute right-2 top-2"
+            className="absolute right-2 top-2 h-6 w-6" // Smaller button
             onClick={handleRemoveImage}
+            disabled={isUploading} // Disable remove while uploading
           >
             <Cross2Icon className="h-4 w-4" />
           </Button>
@@ -113,10 +139,14 @@ export default function ImageUpload({ onImageUploaded, currentImage }: ImageUplo
             className="hidden"
             disabled={isUploading}
           />
-          <label htmlFor="image-upload" className="flex cursor-pointer flex-col items-center justify-center gap-2">
+          <label
+            htmlFor="image-upload"
+            className={`flex cursor-pointer flex-col items-center justify-center gap-2 ${isUploading ? "opacity-50" : ""
+              }`}
+          >
             <Upload className="h-8 w-8 text-muted-foreground" />
             <span className="text-sm font-medium">{isUploading ? "Uploading..." : "Click to upload cover image"}</span>
-            <span className="text-xs text-muted-foreground">SVG, PNG, JPG or GIF (max. 5MB)</span>
+            <span className="text-xs text-muted-foreground">PNG, JPG, GIF (max. 5MB)</span>
           </label>
         </Card>
       )}
