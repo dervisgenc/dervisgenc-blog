@@ -21,6 +21,7 @@ type Config struct {
 	DBName      string
 	DBPort      string
 	JWTSecret   []byte
+	AppURL      string // Add AppURL field
 	Image       ImageConfig
 }
 
@@ -42,7 +43,7 @@ func LoadConfig() *Config {
 		log.Printf("Couldn't find .env file, default values will be loaded: %v", err)
 	}
 
-	return &Config{
+	cfg := Config{
 		Port:        getEnv("PORT", ":8080"),
 		LogOutput:   getEnv("LOG_OUTPUT", "file"), //default olarak file seçilmiştir
 		LogFilePath: getEnv("LOG_FILE_PATH", getDefaultLogPath()),
@@ -52,6 +53,7 @@ func LoadConfig() *Config {
 		DBName:      getEnv("DB_NAME", "website"),
 		DBPort:      getEnv("DB_PORT", "5433"),
 		JWTSecret:   []byte(getEnv("JWT_SECRET", "secret-key")),
+		AppURL:      getEnv("APP_URL", "https://blog.dervisgenc.com"), // Provide a default for local dev
 		Image: ImageConfig{
 			StoragePath:  "uploads/images",
 			MaxSizeMB:    5,
@@ -63,6 +65,13 @@ func LoadConfig() *Config {
 			StorageType:  "local", // Default storage type
 		},
 	}
+
+	// Add checks for required fields
+	if cfg.DBHost == "" || cfg.DBPort == "" || cfg.DBUser == "" || cfg.DBPassword == "" || cfg.DBName == "" || len(cfg.JWTSecret) == 0 || cfg.AppURL == "" {
+		log.Fatal("Missing required environment variables (DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME, JWT_SECRET, APP_URL)")
+	}
+
+	return &cfg
 }
 
 // return value from env or default value

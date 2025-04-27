@@ -2,6 +2,7 @@ package routes
 
 import (
 	"github.com/dervisgenc/dervisgenc-blog/backend/internal/auth"
+	"github.com/dervisgenc/dervisgenc-blog/backend/internal/image" // Import image handler
 	"github.com/dervisgenc/dervisgenc-blog/backend/internal/like"
 	"github.com/dervisgenc/dervisgenc-blog/backend/internal/post"
 	"github.com/dervisgenc/dervisgenc-blog/backend/internal/stat"
@@ -14,6 +15,7 @@ type HandlerContainer struct {
 	Auth  *auth.LoginHandler
 	Like  *like.LikeHandler
 	Stats *stat.StatHandler
+	Image *image.ImageHandler // Add Image handler
 }
 
 func SetupRoutes(r *gin.Engine, h *HandlerContainer, jwtSecret []byte) {
@@ -21,7 +23,9 @@ func SetupRoutes(r *gin.Engine, h *HandlerContainer, jwtSecret []byte) {
 	api := r.Group("/api")
 	{
 
-		api.Static("/uploads/images", "./uploads/images")
+		// Serve static images - Make sure the path matches how URLs are constructed
+		// The URL path should be relative to the baseURL defined in config and LocalStorage
+		api.Static("/uploads/images", "./uploads/images") // URL: /api/uploads/images/<filename>, FS: ./uploads/images/<filename>
 
 		// Public routes within /api
 		api.POST("/admin/login", h.Auth.LoginHandler) // -> /api/admin/login
@@ -51,9 +55,9 @@ func setupAdminRoutes(rg *gin.RouterGroup, h *HandlerContainer) {
 	{
 		posts.GET("/detailed-stats", h.Stats.GetDetailedPostStats)
 		posts.POST("", h.Post.CreatePost)
-		posts.GET("", h.Post.GetAllAdmin)
+		posts.GET("", h.Post.GetAllAdmin) // Route to get all posts (including drafts) for admin view
 		posts.PUT("/:id", h.Post.UpdatePost)
-		posts.GET("/:id", h.Post.GetPostByIDAdmin)
+		posts.GET("/:id", h.Post.GetPostByIDAdmin) // Route to get a specific post for editing
 		posts.DELETE("/:id", h.Post.DeletePost)
 		posts.DELETE("/:id/permanent", h.Post.DeletePostPermanently)
 		posts.GET("/stats", h.Stats.GetAllPostsStats)
@@ -65,5 +69,11 @@ func setupAdminRoutes(rg *gin.RouterGroup, h *HandlerContainer) {
 	{
 		stats.GET("/detailed", h.Stats.GetDetailedStats)
 		stats.GET("/posts", h.Stats.GetDetailedPostStats)
+	}
+
+	// Image upload route under /admin
+	images := rg.Group("/images")
+	{
+		images.POST("/upload", h.Image.UploadImage) // -> /api/admin/images/upload
 	}
 }

@@ -165,7 +165,7 @@ func (a *App) setupRouter() *gin.Engine {
 
 	// CORS configuration
 	r.Use(cors.New(cors.Config{
-		AllowOrigins: []string{"https://dervisgenc.com", "https://blog.dervisgenc.com"}, // Allow specific origins
+		AllowOrigins: []string{"https://dervisgenc.com", "https://blog.dervisgenc.com", "http://localhost:3002", "http://localhost:3000"}, // Allow specific origins including localhost for dev (React and Next.js)
 		AllowMethods: []string{
 			"GET",
 			"POST",
@@ -193,10 +193,7 @@ func (a *App) setupRouter() *gin.Engine {
 		},
 		AllowCredentials: true,
 		MaxAge:           12 * time.Hour,
-		// AllowWildcard is not needed when specifying exact origins
-		// AllowWebSockets can be kept if needed
-		AllowWebSockets: true,
-		// Remove AllowOriginFunc as AllowOrigins handles the validation now
+		AllowWebSockets:  true,
 	}))
 
 	//Add error handling and logging middleware
@@ -224,7 +221,7 @@ func (a *App) initializeHandlers() *routes.HandlerContainer {
 	// Initialize image storage with correct parameters
 	imgStorage := image.NewLocalStorage(
 		a.cfg.Image.StoragePath,
-		a.cfg.Image.BaseURL,
+		fmt.Sprintf("%s/api/uploads/images", a.cfg.AppURL), // Use AppURL from config
 	)
 
 	// Initialize image service with storage and config
@@ -244,13 +241,14 @@ func (a *App) initializeHandlers() *routes.HandlerContainer {
 	statRepo := stat.NewStatRepository(a.db)
 
 	loginService := auth.NewLoginService(loginRepo, a.cfg.JWTSecret)
-	postService := post.NewPostService(postRepo, a.cfg.Image.BaseURL)
+	postService := post.NewPostService(postRepo, imgService.GetImageURL("")) // Pass base URL or rely on imageService
 	statService := stat.NewStatService(statRepo)
 
 	// Initialize handlers
 	loginHandler := auth.NewLoginHandler(loginService)
-	postHandler := post.NewPostHandler(postService, imgService)
+	postHandler := post.NewPostHandler(postService, imgService) // Pass imgService
 	statHandler := stat.NewStatHandler(statService)
+	imageHandler := image.NewImageHandler(imgService) // Initialize image handler
 
 	// Initialize like repository and service
 	likeRepo := like.NewLikeRepository(a.db)
@@ -262,5 +260,6 @@ func (a *App) initializeHandlers() *routes.HandlerContainer {
 		Post:  postHandler,
 		Stats: statHandler,
 		Like:  likeHandler,
+		Image: imageHandler, // Add image handler
 	}
 }

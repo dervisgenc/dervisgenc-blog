@@ -21,11 +21,22 @@ type PostResponse struct {
 
 // PostCreateRequest represents the request to create a post
 type PostCreateRequest struct {
-	Title    string `json:"title" binding:"required"`
-	Content  string `json:"content" binding:"required"`
-	Summary  string `json:"summary"`
-	ReadTime int    `json:"read_time"`
-	IsActive bool   `json:"is_active"`
+	Title       string `json:"title" binding:"required"`
+	Content     string `json:"content" binding:"required"`
+	Description string `json:"description"` // Renamed from Summary to match frontend payload
+	ReadTime    int    `json:"readTime"`    // Match frontend payload casing
+	IsActive    bool   `json:"isActive"`    // Match frontend payload casing
+	ImageURL    string `json:"imageUrl"`    // Add ImageUrl field
+}
+
+// PostUpdateRequest represents the request to update a post
+type PostUpdateRequest struct {
+	Title       string `json:"title" binding:"required"`
+	Content     string `json:"content" binding:"required"`
+	Description string `json:"description"`
+	ReadTime    int    `json:"readTime"`
+	IsActive    bool   `json:"isActive"`
+	ImageURL    string `json:"imageUrl"` // Add ImageUrl field
 }
 
 type PostListResponse struct {

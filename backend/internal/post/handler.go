@@ -9,8 +9,10 @@ import (
 
 	"github.com/dervisgenc/dervisgenc-blog/backend/internal/image"
 	myerr "github.com/dervisgenc/dervisgenc-blog/backend/pkg"
+	"github.com/dervisgenc/dervisgenc-blog/backend/pkg/dto"
 	"github.com/dervisgenc/dervisgenc-blog/backend/pkg/models"
 	"github.com/gin-gonic/gin"
+	"github.com/sirupsen/logrus"
 )
 
 type PostHandler struct {
@@ -71,58 +73,47 @@ func (h *PostHandler) GetPostByID(c *gin.Context) {
 
 // CreatePost godoc
 // @Summary Create a new post
-// @Description Create a new post with the provided data and an optional image
+// @Description Create a new post with the provided data including an image URL
 // @Tags Posts
-// @Accept multipart/form-data
+// @Accept json
 // @Produce json
-// @Param title formData string true "Post Title"
-// @Param content formData string true "Post Content"
-// @Param description formData string false "Post Description"
-// @Param readTime formData string false "Estimated Read Time"
-// @Param image formData file false "Cover Image"
+// @Param post body dto.PostCreateRequest true "Post Data"
 // @Success 201 {object} models.Post
 // @Failure 400 {object} models.ErrorResponse "Invalid request"
 // @Failure 500 {object} models.ErrorResponse "Internal Server Error"
-// @Router /posts [post]
+// @Router /admin/posts [post]
 func (h *PostHandler) CreatePost(c *gin.Context) {
-	var post models.Post
+	var req dto.PostCreateRequest
 
-	// Get form data
-	post.Title = c.PostForm("title")
-	post.Summary = c.PostForm("description")
-	post.Content = c.PostForm("content")
-	readTime, err := strconv.Atoi(c.PostForm("readTime"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid read time"})
+	// Bind JSON payload
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.Error(myerr.WithHTTPStatus(fmt.Errorf("invalid request body: %w", err), http.StatusBadRequest))
 		return
 	}
-	post.ReadTime = readTime
-	post.IsActive, _ = strconv.ParseBool(c.PostForm("isActive"))
 
-	// Handle image upload
-	file, err := c.FormFile("image")
-	if err == nil {
-		// Save image using image service
-		filename, err := h.imageService.SaveImage(file)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Unable to save image: %v", err)})
-			return
-		}
+	// --- Add Logging ---
+	logger, _ := c.Get("logger") // Assuming logger is set in middleware
+	if l, ok := logger.(*logrus.Logger); ok {
+		l.Infof("CreatePost Request Received - ImageURL: %s", req.ImageURL)
+	} else {
+		// Fallback to standard log if logger not found or wrong type
+		fmt.Printf("INFO: CreatePost Request Received - ImageURL: %s\n", req.ImageURL)
+	}
+	// --- End Logging ---
 
-		// Set both image path and URL
-		post.ImagePath = filename
-		post.ImageURL = h.imageService.GetImageURL(filename)
-
-		fmt.Printf("Saved image - Path: %s, URL: %s\n", post.ImagePath, post.ImageURL)
+	// Map DTO to model
+	post := models.Post{
+		Title:    req.Title,
+		Summary:  req.Description,
+		Content:  req.Content,
+		ReadTime: req.ReadTime,
+		IsActive: req.IsActive,
+		ImageURL: req.ImageURL,
 	}
 
-	// Create post
-	err = h.service.CreatePost(&post)
+	// Create post using the service
+	err := h.service.CreatePost(&post)
 	if err != nil {
-		// Cleanup the uploaded image if post creation fails
-		if post.ImagePath != "" {
-			_ = h.imageService.DeleteImage(post.ImagePath)
-		}
 		c.Error(myerr.WithHTTPStatus(err, http.StatusInternalServerError))
 		return
 	}
@@ -132,91 +123,57 @@ func (h *PostHandler) CreatePost(c *gin.Context) {
 
 // UpdatePost godoc
 // @Summary Update an existing post
-// @Description Update a post with the given data
+// @Description Update a post with the given data including an image URL
 // @Tags Posts
 // @Accept json
 // @Produce json
-// @Param post body models.Post true "Updated Post Data"
+// @Param id path int true "Post ID"
+// @Param post body dto.PostUpdateRequest true "Updated Post Data"
 // @Success 200 {object} models.Post
 // @Failure 400 {object} models.ErrorResponse "Invalid request"
+// @Failure 404 {object} models.ErrorResponse "Post not found"
 // @Failure 500 {object} models.ErrorResponse "Internal Server Error"
-// @Router /posts/{id} [put]
+// @Router /admin/posts/{id} [put]
 func (h *PostHandler) UpdatePost(c *gin.Context) {
-	// Get post ID from URL parameter
 	idParam := c.Param("id")
 	id, err := strconv.ParseUint(idParam, 10, 32)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid post ID"})
+		c.Error(myerr.WithHTTPStatus(errors.New("invalid post ID"), http.StatusBadRequest))
 		return
 	}
 
-	// Get existing post
 	existingPost, err := h.service.GetPostByIDAdmin(uint(id))
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Post not found"})
+		c.Error(myerr.WithHTTPStatus(err, http.StatusInternalServerError))
 		return
 	}
 
-	// Create updated post with existing data, including timestamps
+	var req dto.PostUpdateRequest
+
+	// Bind JSON payload
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.Error(myerr.WithHTTPStatus(fmt.Errorf("invalid request body: %w", err), http.StatusBadRequest))
+		return
+	}
+
+	// Map DTO to the existing post model, updating fields
 	updatedPost := &models.Post{
 		ID:        uint(id),
-		CreatedAt: existingPost.CreatedAt, // Preserve original creation date
-		Title:     existingPost.Title,
-		Summary:   existingPost.Summary,
-		Content:   existingPost.Content,
-		ReadTime:  existingPost.ReadTime,
-		ImagePath: existingPost.ImagePath,
-		ImageURL:  existingPost.ImageURL,
-		IsActive:  existingPost.IsActive,
+		CreatedAt: existingPost.CreatedAt,
+		Title:     req.Title,
+		Summary:   req.Description,
+		Content:   req.Content,
+		ReadTime:  req.ReadTime,
+		IsActive:  req.IsActive,
+		ImageURL:  req.ImageURL,
+		UpdatedAt: time.Now(),
+		LikeCount: existingPost.LikeCount,
 	}
 
-	// Update fields if provided in form data
-	if title := c.PostForm("title"); title != "" {
-		updatedPost.Title = title
-	}
-	if description := c.PostForm("description"); description != "" {
-		updatedPost.Summary = description
-	}
-	if content := c.PostForm("content"); content != "" {
-		updatedPost.Content = content
-	}
-	if readTime := c.PostForm("readTime"); readTime != "" {
-		if rt, err := strconv.Atoi(readTime); err == nil {
-			updatedPost.ReadTime = rt
-		}
-	}
-	if isActive := c.PostForm("isActive"); isActive != "" {
-		active, err := strconv.ParseBool(isActive)
-		if err == nil {
-			updatedPost.IsActive = active
-		}
-	}
-
-	// Handle new image if provided
-	file, err := c.FormFile("image")
-	if err == nil {
-		// Delete old image if exists
-		if existingPost.ImagePath != "" {
-			_ = h.imageService.DeleteImage(existingPost.ImagePath)
-		}
-
-		// Save new image
-		filename, err := h.imageService.SaveImage(file)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to save image"})
-			return
-		}
-		updatedPost.ImagePath = filename
-		updatedPost.ImageURL = h.imageService.GetImageURL(filename)
-	}
-
-	// Set UpdatedAt to current time
-	updatedPost.UpdatedAt = time.Now()
-
-	// Update the post
+	// Update the post using the service
 	err = h.service.UpdatePost(updatedPost)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.Error(myerr.WithHTTPStatus(fmt.Errorf("failed to update post: %w", err), http.StatusInternalServerError))
 		return
 	}
 
@@ -321,7 +278,6 @@ func (h *PostHandler) GetPostByIDAdmin(c *gin.Context) {
 // @Failure 500 {object} models.ErrorResponse "Internal Server Error"
 // @Router /posts/paginated [get]
 func (h *PostHandler) GetPaginatedPosts(c *gin.Context) {
-	// Parse query parameters
 	page, err := strconv.Atoi(c.DefaultQuery("page", "1"))
 	if err != nil || page < 1 {
 		c.Error(myerr.WithHTTPStatus(errors.New("invalid page number"), http.StatusBadRequest))
@@ -334,7 +290,6 @@ func (h *PostHandler) GetPaginatedPosts(c *gin.Context) {
 		return
 	}
 
-	// Get paginated posts
 	result, err := h.service.GetPaginatedPosts(page, pageSize)
 	if err != nil {
 		c.Error(myerr.WithHTTPStatus(err, http.StatusInternalServerError))

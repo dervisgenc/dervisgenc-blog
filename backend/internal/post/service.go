@@ -47,7 +47,7 @@ func (s *PostService) GetPostByIDAdmin(id uint) (*models.Post, error) {
 }
 
 func (s *PostService) CreatePost(post *models.Post) error {
-	fmt.Println(post)
+	fmt.Printf("INFO: Service CreatePost - Saving Post with ImageURL: %s\n", post.ImageURL)
 
 	if len(post.Title) == 0 || post.Content == "" {
 		return errors.New("title and content cannot be empty")
