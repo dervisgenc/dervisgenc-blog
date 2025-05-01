@@ -2,48 +2,31 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
-import { PlusCircle, Edit, Trash2, Eye, Users, FileText, MessageSquare } from "lucide-react"
+import { PlusCircle, Edit, Trash2, Eye, Users, FileText, MessageSquare, Share2, Heart } from "lucide-react" // Added Share2, Heart
 import { useToast } from "@/components/hooks/use-toast"
 import AdminLoginForm from "@/components/admin-login-form"
 import { MagnifyingGlassIcon } from "@radix-ui/react-icons"
 import { getAuthHeaders, getAuthToken } from "@/utils/auth"
 import { useRouter } from "next/navigation"
-import type { PostListItem } from "@/types"
+import type { PostListItem, OverallStatsResponse, DetailedStatsResponse, PostDetailedStats, DailyTrafficStat } from "@/types" // Import DailyTrafficStat
 import DeletePostDialog from "@/components/delete-post-dialog"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import TrafficChart from "@/components/traffic-chart" // Import the new chart component
+import ImageWithFallback from "@/components/image-with-fallback" // Import the new component
 
-const stats = [
-  {
-    title: "Total Posts",
-    value: "...",
-    icon: FileText,
-    change: "",
-  },
-  {
-    title: "Total Views",
-    value: "...",
-    icon: Eye,
-    change: "",
-  },
-  {
-    title: "Comments",
-    value: "...",
-    icon: MessageSquare,
-    change: "",
-  },
-  {
-    title: "Subscribers",
-    value: "...",
-    icon: Users,
-    change: "",
-  },
-]
+// Initial state for overall stats
+const initialOverallStats: OverallStatsResponse = {
+  total_posts: 0,
+  total_views: 0,
+  total_likes: 0,
+  total_shares: 0,
+};
 
 export default function AdminPage() {
   const [authChecked, setAuthChecked] = useState(false)
@@ -55,10 +38,109 @@ export default function AdminPage() {
   const [isDeleting, setIsDeleting] = useState(false)
   const [postToDelete, setPostToDelete] = useState<PostListItem | null>(null)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [overallStats, setOverallStats] = useState<OverallStatsResponse>(initialOverallStats);
+  const [detailedPostStats, setDetailedPostStats] = useState<PostDetailedStats[]>([]);
+  const [isLoadingStats, setIsLoadingStats] = useState(false);
+  const [trafficData, setTrafficData] = useState<DailyTrafficStat[]>([]); // State for traffic chart
+  const [isLoadingTraffic, setIsLoadingTraffic] = useState(false); // Loading state for traffic chart
+
   const router = useRouter()
   const { toast } = useToast()
 
+  // --- Fetch Overall Stats ---
+  const fetchOverallStats = async () => {
+    if (!isAuthenticatedState || !token) return;
+    setIsLoadingStats(true); // Use the general stats loading indicator
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://blog.dervisgenc.com/api";
+      const response = await fetch(`${apiUrl}/admin/stats/overall`, {
+        headers: getAuthHeaders(),
+      });
+
+      if (!response.ok) {
+        if (response.status === 401) handleLogout();
+        throw new Error("Failed to fetch overall stats");
+      }
+
+      const data: OverallStatsResponse = await response.json();
+      setOverallStats(data);
+    } catch (error) {
+      console.error("Error fetching overall stats:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load overall stats.",
+        variant: "destructive",
+      });
+      setOverallStats(initialOverallStats); // Reset on error
+    } finally {
+      // setIsLoadingStats(false); // Set loading false after all stats fetches complete
+    }
+  };
+
+  // --- Fetch Detailed Post Stats ---
+  const fetchDetailedPostStats = async () => {
+    if (!isAuthenticatedState || !token) return;
+    // setIsLoadingStats(true); // Use the general stats loading indicator
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://blog.dervisgenc.com/api";
+      const response = await fetch(`${apiUrl}/admin/posts/detailed-stats`, {
+        headers: getAuthHeaders(),
+      });
+
+      if (!response.ok) {
+        if (response.status === 401) handleLogout();
+        throw new Error("Failed to fetch detailed post stats");
+      }
+
+      const data: DetailedStatsResponse = await response.json();
+      setDetailedPostStats(data.post_stats || []);
+    } catch (error) {
+      console.error("Error fetching detailed post stats:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load detailed post stats.",
+        variant: "destructive",
+      });
+      setDetailedPostStats([]);
+    } finally {
+      setIsLoadingStats(false); // Set loading false after all stats fetches complete
+    }
+  };
+
+  // --- Fetch Traffic Data ---
+  const fetchTrafficData = async () => {
+    if (!isAuthenticatedState || !token) return;
+    setIsLoadingTraffic(true);
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://blog.dervisgenc.com/api";
+      // Add date range parameters if needed, e.g., ?start_date=...&end_date=...
+      const response = await fetch(`${apiUrl}/admin/stats/traffic`, {
+        headers: getAuthHeaders(),
+      });
+
+      if (!response.ok) {
+        if (response.status === 401) handleLogout();
+        throw new Error("Failed to fetch traffic data");
+      }
+
+      const data: DailyTrafficStat[] = await response.json();
+      setTrafficData(data);
+    } catch (error) {
+      console.error("Error fetching traffic data:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load traffic data.",
+        variant: "destructive",
+      });
+      setTrafficData([]); // Reset on error
+    } finally {
+      setIsLoadingTraffic(false);
+    }
+  };
+
+
   const fetchPosts = async () => {
+    // ... (fetchPosts implementation remains the same) ...
     if (isAuthenticatedState && token) {
       setIsLoadingPosts(true)
       try {
@@ -98,6 +180,7 @@ export default function AdminPage() {
 
   useEffect(() => {
     const checkAuth = () => {
+      // ... (checkAuth implementation remains the same) ...
       if (typeof window !== "undefined") {
         const currentToken = getAuthToken()
         if (currentToken) {
@@ -113,15 +196,22 @@ export default function AdminPage() {
     checkAuth()
   }, [])
 
-  useEffect(() => {
-    if (isAuthenticatedState && activeTab === "posts") {
-      fetchPosts()
-    }
-    if (isAuthenticatedState && activeTab === "dashboard") {
-      // Fetch dashboard stats if needed
-    }
-  }, [isAuthenticatedState, activeTab, token])
 
+  useEffect(() => {
+    if (isAuthenticatedState) {
+      if (activeTab === "posts") {
+        fetchPosts();
+      }
+      if (activeTab === "dashboard") {
+        // Fetch all dashboard data
+        fetchOverallStats();
+        fetchDetailedPostStats();
+        fetchTrafficData(); // Fetch traffic data
+      }
+    }
+  }, [isAuthenticatedState, activeTab, token]);
+
+  // ... handleLogin, handleLogout, delete dialog logic ...
   const handleLogin = (success: boolean, newToken?: string) => {
     if (success && newToken) {
       setToken(newToken)
@@ -131,7 +221,7 @@ export default function AdminPage() {
         title: "Login successful",
         description: "Welcome to the admin dashboard",
       })
-      setActiveTab("dashboard")
+      setActiveTab("dashboard") // Switch to dashboard on login
     } else {
       setIsAuthenticatedState(false)
       toast({
@@ -148,11 +238,15 @@ export default function AdminPage() {
     }
     setToken(null)
     setIsAuthenticatedState(false)
-    setAuthChecked(true)
+    setAuthChecked(true) // Keep authChecked true
+    setOverallStats(initialOverallStats); // Reset stats on logout
+    setDetailedPostStats([]);
+    setTrafficData([]); // Reset traffic data
     toast({
       title: "Logged out",
       description: "You have been logged out successfully",
     })
+    // No need to redirect here, the component will re-render the login form
   }
 
   const openDeleteDialog = (post: PostListItem) => {
@@ -195,7 +289,15 @@ export default function AdminPage() {
         description: `Post "${postToDelete.title}" has been ${permanent ? "permanently deleted" : "moved to trash"}.`,
       })
 
-      fetchPosts()
+      // Refresh data depending on the active tab
+      if (activeTab === 'posts') {
+        fetchPosts()
+      } else if (activeTab === 'dashboard') {
+        fetchDetailedPostStats(); // Refresh detailed stats if a post is deleted
+        fetchOverallStats(); // Refresh overall stats
+        fetchTrafficData(); // Refresh traffic data
+      }
+
     } catch (error) {
       console.error("Error deleting post:", error)
       toast({
@@ -209,6 +311,8 @@ export default function AdminPage() {
     }
   }
 
+
+  // --- Loading/Login Screens remain the same ---
   if (!authChecked) {
     return (
       <div className="container flex min-h-screen items-center justify-center py-12">
@@ -235,8 +339,19 @@ export default function AdminPage() {
     )
   }
 
+
+  // --- Map fetched stats to card data ---
+  const dashboardStats = [
+    { title: "Total Posts", value: overallStats.total_posts, icon: FileText },
+    { title: "Total Views", value: overallStats.total_views, icon: Eye },
+    { title: "Total Likes", value: overallStats.total_likes, icon: Heart }, // Use Heart icon
+    { title: "Total Shares", value: overallStats.total_shares, icon: Share2 }, // Use Share2 icon
+  ];
+
+
   return (
     <div className="container py-6">
+      {/* ... Header and Buttons ... */}
       <div className="mb-6 flex flex-col justify-between gap-4 md:flex-row md:items-center">
         <div>
           <h1 className="text-2xl font-bold">Admin Dashboard</h1>
@@ -255,7 +370,9 @@ export default function AdminPage() {
         </div>
       </div>
 
+
       <Tabs value={activeTab} onValueChange={setActiveTab}>
+        {/* ... TabsList ... */}
         <TabsList className="mb-6 grid w-full grid-cols-2 sm:grid-cols-4">
           <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
           <TabsTrigger value="posts">Posts</TabsTrigger>
@@ -263,39 +380,96 @@ export default function AdminPage() {
           <TabsTrigger value="settings">Settings</TabsTrigger>
         </TabsList>
 
+
         <TabsContent value="dashboard" className="space-y-6">
+          {/* Overall Stats Cards */}
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            {stats.map((stat, index) => (
+            {dashboardStats.map((stat, index) => (
               <Card key={index}>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
                   <stat.icon className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{stat.value}</div>
+                  <div className="text-2xl font-bold">
+                    {isLoadingStats ? "..." : stat.value}
+                  </div>
+                  {/* Optional: Add change indicator if backend provides it */}
                 </CardContent>
               </Card>
             ))}
           </div>
 
+
+          {/* Traffic Overview Chart */}
           <Card>
             <CardHeader>
-              <CardTitle>Traffic Overview</CardTitle>
+              <CardTitle>Traffic Overview (Last 30 Days)</CardTitle>
+              {/* Add date range picker here later if needed */}
             </CardHeader>
             <CardContent>
-              <div className="h-[300px] w-full rounded-md border border-dashed border-border flex items-center justify-center">
-                <p className="text-muted-foreground">Traffic chart visualization (Coming Soon)</p>
+              {/* Replace placeholder with TrafficChart component */}
+              <div className="h-[300px] w-full">
+                <TrafficChart data={trafficData} isLoading={isLoadingTraffic} />
               </div>
             </CardContent>
           </Card>
+
+          {/* Detailed Post Stats Table */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Post Statistics</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {isLoadingStats ? (
+                <div className="flex justify-center p-8">
+                  <div className="h-6 w-6 animate-spin rounded-full border-2 border-cyan-600 border-t-transparent"></div>
+                </div>
+              ) : detailedPostStats.length === 0 ? (
+                <div className="p-8 text-center text-muted-foreground">No post statistics available.</div>
+              ) : (
+                <div className="rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-[60%]">Title</TableHead>
+                        <TableHead className="text-center">Views</TableHead>
+                        <TableHead className="text-center">Likes</TableHead>
+                        <TableHead className="text-center">Shares</TableHead>
+                        {/* <TableHead className="text-right">Created</TableHead> */}
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {detailedPostStats.map((postStat) => (
+                        <TableRow key={postStat.post_id}>
+                          <TableCell className="font-medium truncate">
+                            <Link href={`/post/${postStat.post_id}`} target="_blank" rel="noopener noreferrer" className="hover:underline hover:text-cyan-500">
+                              {postStat.title}
+                            </Link>
+                          </TableCell>
+                          <TableCell className="text-center">{postStat.views}</TableCell>
+                          <TableCell className="text-center">{postStat.likes}</TableCell>
+                          <TableCell className="text-center">{postStat.shares}</TableCell>
+                          {/* <TableCell className="text-right text-muted-foreground text-xs">{new Date(postStat.created_at).toLocaleDateString()}</TableCell> */}
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
         </TabsContent>
 
+        {/* Posts Tab Content */}
         <TabsContent value="posts">
           <Card>
             <CardHeader>
               <CardTitle>Manage Posts</CardTitle>
             </CardHeader>
             <CardContent>
+              {/* ... Search Input ... */}
               <div className="mb-4 flex items-center gap-4">
                 <div className="relative flex-1">
                   <MagnifyingGlassIcon className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -303,6 +477,7 @@ export default function AdminPage() {
                 </div>
               </div>
 
+              {/* Posts Table */}
               <div className="rounded-md border">
                 <div className="grid grid-cols-12 items-center border-b bg-muted/50 px-4 py-3 font-medium text-sm">
                   <div className="col-span-6">Title</div>
@@ -322,15 +497,15 @@ export default function AdminPage() {
                     <div key={post.id} className="grid grid-cols-12 items-center border-b px-4 py-3 text-sm last:border-0 hover:bg-muted/50">
                       <div className="col-span-6 flex items-center gap-2 truncate font-medium">
                         {post.image_url ? (
-                          <Image
+                          /* Replace Image with ImageWithFallback */
+                          <ImageWithFallback
                             src={post.image_url}
+                            fallbackSrc="/placeholder.svg" // Or a smaller placeholder
                             alt={post.title}
                             width={24}
                             height={24}
                             className="h-6 w-6 rounded object-cover"
-                            onError={(e) => {
-                              ; (e.target as HTMLImageElement).style.display = "none"
-                            }}
+                          // onError is handled internally
                           />
                         ) : (
                           <div className="h-6 w-6 rounded bg-secondary"></div>
@@ -368,7 +543,10 @@ export default function AdminPage() {
           </Card>
         </TabsContent>
 
+
+        {/* Comments Tab Content */}
         <TabsContent value="comments">
+          {/* ... Comments Placeholder ... */}
           <Card>
             <CardHeader>
               <CardTitle>Manage Comments</CardTitle>
@@ -381,7 +559,10 @@ export default function AdminPage() {
           </Card>
         </TabsContent>
 
+
+        {/* Settings Tab Content */}
         <TabsContent value="settings">
+          {/* ... Settings Form ... */}
           <Card>
             <CardHeader>
               <CardTitle>Blog Settings</CardTitle>
@@ -405,8 +586,10 @@ export default function AdminPage() {
             </CardContent>
           </Card>
         </TabsContent>
+
       </Tabs>
 
+      {/* Delete Dialog */}
       <DeletePostDialog
         isOpen={isDeleteDialogOpen}
         onClose={closeDeleteDialog}
@@ -414,6 +597,7 @@ export default function AdminPage() {
         isDeleting={isDeleting}
         postTitle={postToDelete?.title || ""}
       />
+
     </div>
   )
 }
