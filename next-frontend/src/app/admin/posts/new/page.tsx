@@ -1,78 +1,48 @@
 "use client"
 
-import type React from "react"
-
-import { useState, useEffect } from "react"
+import React, { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select" // Import Select components
 import { Switch } from "@/components/ui/switch"
-import { Eye, Save } from "lucide-react"
+import { Eye, Save, ArrowLeftIcon } from "lucide-react" // Use lucide icon
 import DynamicPostEditor from "@/components/dynamic-post-editor"
 import ImageUpload from "@/components/image-upload"
-import { ArrowLeftIcon } from "@radix-ui/react-icons"
 import { toast } from "sonner"
 import { getAuthHeaders, isAuthenticated } from "@/utils/auth"
 
 export default function NewPostPage() {
   const router = useRouter()
+  const [title, setTitle] = useState("")
+  const [summary, setSummary] = useState("")
+  const [content, setContent] = useState("")
+  const [readTime, setReadTime] = useState(0)
+  const [coverImageUrl, setCoverImageUrl] = useState<string | undefined>(undefined)
+  const [category, setCategory] = useState("") // Add category state
+  const [tags, setTags] = useState("") // Add tags state
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isPreview, setIsPreview] = useState(false)
-  const [coverImageUrl, setCoverImageUrl] = useState<string | undefined>(undefined)
-  const [post, setPost] = useState({
-    title: "",
-    summary: "",
-    content: "",
-    category: "",
-    tags: "",
-    readTime: 5,
-    isPublished: true,
-  })
 
   useEffect(() => {
     if (!isAuthenticated()) {
       router.push('/admin')
-      toast("Unauthorized", {
-        description: "Please log in to create a post.",
-        action: { label: "Close", onClick: () => { } },
-      })
+      toast("Unauthorized", { description: "Please log in." })
     }
   }, [router])
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target
-    setPost((prev) => ({ ...prev, [name]: value }))
-  }
-
-  const handleSelectChange = (name: string, value: string) => {
-    setPost((prev) => ({ ...prev, [name]: value }))
-  }
-
-  const handleSwitchChange = (name: string, checked: boolean) => {
-    const stateName = name === "isPublished" ? "isPublished" : name
-    setPost((prev) => ({ ...prev, [stateName]: checked }))
-  }
-
-  const handleEditorChange = (content: string) => {
-    setPost((prev) => ({ ...prev, content }))
-  }
 
   const handleImageUploaded = (imageUrl: string) => {
     setCoverImageUrl(imageUrl)
   }
 
   const handlePreview = () => {
-    if (!post.title) {
+    if (!title) {
       toast("Title required", {
         description: "Please add a title before previewing",
-        action: {
-          label: "Close",
-          onClick: () => { },
-        },
+        action: { label: "Close", onClick: () => { } },
       })
       return
     }
@@ -83,34 +53,25 @@ export default function NewPostPage() {
     setIsPreview(false)
   }
 
-  const handleSave = async (publish = false) => {
-    if (!post.title) {
-      toast("Title required", {
-        description: "Please add a title before saving",
-        action: {
-          label: "Close",
-          onClick: () => { },
-        },
-      })
-      return
-    }
-
+  const handleSave = async (publish: boolean) => {
     setIsSubmitting(true)
 
     const payload = {
-      title: post.title,
-      content: post.content,
-      description: post.summary,
-      readTime: post.readTime,
+      title,
+      content,
+      description: summary, // Map frontend 'summary' to backend 'description'
+      readTime,
       isActive: publish,
-      imageUrl: coverImageUrl || "",
+      imageUrl: coverImageUrl || "", // Send empty string if undefined
+      category: category, // Include category
+      tags: tags, // Include tags
     }
 
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://blog.dervisgenc.com/api"
       const response = await fetch(`${apiUrl}/admin/posts`, {
         method: 'POST',
-        headers: getAuthHeaders(),
+        headers: getAuthHeaders(), // Uses helper to get headers with token
         body: JSON.stringify(payload),
       })
 
@@ -135,7 +96,7 @@ export default function NewPostPage() {
         },
       })
 
-      router.push("/admin")
+      router.push("/admin") // Redirect to the main admin page
     } catch (error) {
       console.error("Error saving post:", error)
       toast("Error", {
@@ -167,10 +128,14 @@ export default function NewPostPage() {
               className="flex items-center gap-2"
             >
               <Save className="h-4 w-4" />
-              {isSubmitting ? "Saving..." : "Save as Draft"}
+              Save Draft
             </Button>
-            <Button onClick={() => handleSave(true)} disabled={isSubmitting} className="bg-cyan-600 hover:bg-cyan-700">
-              {isSubmitting ? "Publishing..." : "Publish Now"}
+            <Button
+              onClick={() => handleSave(true)}
+              disabled={isSubmitting}
+              className="bg-cyan-600 hover:bg-cyan-700 flex items-center gap-2"
+            >
+              {isSubmitting ? "Publishing..." : "Publish Post"}
             </Button>
           </div>
         </div>
@@ -184,18 +149,35 @@ export default function NewPostPage() {
               <div className="relative aspect-video w-full">
                 <img
                   src={previewImageUrl}
-                  alt={post.title || "Post preview"}
+                  alt={title || "Post preview"}
                   className="h-full w-full object-cover"
                   onError={(e) => { (e.target as HTMLImageElement).src = "/placeholder.svg"; }}
                 />
               </div>
             )}
             <div className="p-6">
-              <h1 className="mb-4 text-3xl font-bold">{post.title || "[No Title]"}</h1>
-              {post.summary && <p className="mb-6 text-muted-foreground">{post.summary}</p>}
+              <h1 className="mb-4 text-3xl font-bold">{title || "[No Title]"}</h1>
+              {summary && <p className="mb-6 text-muted-foreground">{summary}</p>}
+              {/* Display Category and Tags in Preview */}
+              <div className="mb-4 flex flex-wrap items-center gap-4 text-sm">
+                {category && (
+                  <span className="inline-flex items-center rounded-full bg-cyan-100 px-3 py-0.5 text-xs font-medium text-cyan-800 dark:bg-cyan-900 dark:text-cyan-200">
+                    {category}
+                  </span>
+                )}
+                {tags && (
+                  <div className="flex flex-wrap gap-1">
+                    {tags.split(',').map(tag => tag.trim()).filter(Boolean).map(tag => (
+                      <span key={tag} className="inline-flex items-center rounded bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                        #{tag}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
               <div
                 className="prose prose-lg dark:prose-invert max-w-none"
-                dangerouslySetInnerHTML={{ __html: post.content || "<p>No content yet.</p>" }}
+                dangerouslySetInnerHTML={{ __html: content || "<p>No content yet.</p>" }}
               />
             </div>
           </CardContent>
@@ -206,12 +188,15 @@ export default function NewPostPage() {
 
   return (
     <div className="container py-6">
-      <div className="mb-6">
-        <Button variant="ghost" size="sm" onClick={() => router.back()} className="mb-2 flex items-center gap-1 text-muted-foreground">
-          <ArrowLeftIcon className="h-4 w-4" /> Back
-        </Button>
-        <h1 className="text-2xl font-bold">Create New Post</h1>
-        <p className="text-muted-foreground">Create and publish a new blog post</p>
+      <div className="mb-6 flex flex-col justify-between gap-4 md:flex-row md:items-center">
+        <div>
+          <Button variant="ghost" size="sm" onClick={() => router.back()} className="mb-2 flex items-center gap-1 text-muted-foreground">
+            <ArrowLeftIcon className="h-4 w-4" /> Back
+          </Button>
+          <h1 className="text-2xl font-bold">Create New Post</h1>
+          <p className="text-muted-foreground">Fill in the details for your new blog post</p>
+        </div>
+        {/* Buttons moved to CardFooter */}
       </div>
 
       <div className="grid gap-6 md:grid-cols-3">
@@ -225,9 +210,8 @@ export default function NewPostPage() {
                 <Label htmlFor="title">Title</Label>
                 <Input
                   id="title"
-                  name="title"
-                  value={post.title}
-                  onChange={handleInputChange}
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
                   placeholder="Enter post title"
                   required
                 />
@@ -236,16 +220,15 @@ export default function NewPostPage() {
                 <Label htmlFor="summary">Summary</Label>
                 <Textarea
                   id="summary"
-                  name="summary"
-                  value={post.summary}
-                  onChange={handleInputChange}
+                  value={summary}
+                  onChange={(e) => setSummary(e.target.value)}
                   placeholder="Brief summary of your post"
                   rows={3}
                 />
               </div>
               <div className="space-y-2">
                 <Label>Content</Label>
-                <DynamicPostEditor value={post.content} onChange={handleEditorChange} />
+                <DynamicPostEditor value={content} onChange={setContent} />
               </div>
             </CardContent>
           </Card>
@@ -259,14 +242,12 @@ export default function NewPostPage() {
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label>Cover Image</Label>
-                <ImageUpload
-                  onImageUploaded={handleImageUploaded}
-                  currentImage={coverImageUrl}
-                />
+                <ImageUpload onImageUploaded={handleImageUploaded} />
               </div>
+              {/* Category Select */}
               <div className="space-y-2">
                 <Label htmlFor="category">Category</Label>
-                <Select value={post.category} onValueChange={(value) => handleSelectChange("category", value)}>
+                <Select value={category} onValueChange={setCategory}>
                   <SelectTrigger id="category">
                     <SelectValue placeholder="Select category" />
                   </SelectTrigger>
@@ -276,16 +257,17 @@ export default function NewPostPage() {
                     <SelectItem value="ai">AI</SelectItem>
                     <SelectItem value="networking">Networking</SelectItem>
                     <SelectItem value="privacy">Privacy</SelectItem>
+                    {/* Add more categories as needed */}
                   </SelectContent>
                 </Select>
               </div>
+              {/* Tags Input */}
               <div className="space-y-2">
                 <Label htmlFor="tags">Tags</Label>
                 <Input
                   id="tags"
-                  name="tags"
-                  value={post.tags}
-                  onChange={handleInputChange}
+                  value={tags}
+                  onChange={(e) => setTags(e.target.value)}
                   placeholder="security, hacking, defense (comma separated)"
                 />
               </div>
@@ -293,42 +275,47 @@ export default function NewPostPage() {
                 <Label htmlFor="readTime">Read Time (minutes)</Label>
                 <Input
                   id="readTime"
-                  name="readTime"
                   type="number"
-                  value={post.readTime}
-                  onChange={(e) => {
-                    const value = e.target.value
-                    const parsedValue = value === '' ? 0 : Math.max(0, Number(value))
-                    setPost(prev => ({ ...prev, readTime: parsedValue }))
-                  }}
+                  value={readTime}
+                  onChange={(e) => setReadTime(Math.max(0, Number(e.target.value)))}
                   min="0"
                 />
               </div>
-              <div className="flex items-center justify-between space-y-0">
-                <Label htmlFor="published">Publish immediately</Label>
-                <Switch
-                  id="published"
-                  name="isPublished"
-                  checked={post.isPublished}
-                  onCheckedChange={(checked) => handleSwitchChange("isPublished", checked)}
-                />
-              </div>
+              {/* Publish Switch - Consider removing if using Save Draft/Publish buttons */}
+              {/* <div className="flex items-center justify-between space-y-0">
+                <Label htmlFor="published">Published</Label>
+                <Switch id="published" checked={isPublished} onCheckedChange={setIsPublished} />
+              </div> */}
             </CardContent>
             <CardFooter className="flex justify-between border-t px-6 py-4">
               <Button variant="outline" onClick={() => router.back()} disabled={isSubmitting}>
                 Cancel
               </Button>
               <div className="flex gap-2">
-                <Button variant="outline" onClick={handlePreview} className="flex items-center gap-2" disabled={isSubmitting}>
+                <Button
+                  variant="outline"
+                  onClick={handlePreview}
+                  className="flex items-center gap-2"
+                  disabled={isSubmitting}
+                >
                   <Eye className="h-4 w-4" />
                   Preview
                 </Button>
-                <Button
-                  onClick={() => handleSave(post.isPublished)}
+                {/* <Button
+                  variant="secondary" // Changed Save Draft to secondary
+                  onClick={() => handleSave(false)} // Save Draft (isActive: false)
                   disabled={isSubmitting}
-                  className="bg-cyan-600 hover:bg-cyan-700"
+                  className="flex items-center gap-2"
                 >
-                  {isSubmitting ? "Saving..." : post.isPublished ? "Publish" : "Save Draft"}
+                  <Save className="h-4 w-4" />
+                  {isSubmitting ? "Saving..." : "Save Draft"}
+                </Button> */}
+                <Button
+                  onClick={() => handleSave(true)} // Publish (isActive: true)
+                  disabled={isSubmitting}
+                  className="bg-cyan-600 hover:bg-cyan-700 flex items-center gap-2"
+                >
+                  {isSubmitting ? "Publishing..." : "Publish Post"}
                 </Button>
               </div>
             </CardFooter>
