@@ -17,26 +17,32 @@ type PostResponse struct {
 	LikeCount int       `json:"like_count"`
 	IsActive  bool      `json:"is_active"`
 	CreatedAt time.Time `json:"created_at"`
+	Category  string    `json:"category,omitempty"` // Added Category
+	Tags      string    `json:"tags,omitempty"`     // Added Tags
 }
 
 // PostCreateRequest represents the request to create a post
 type PostCreateRequest struct {
 	Title       string `json:"title" binding:"required"`
 	Content     string `json:"content" binding:"required"`
-	Description string `json:"description"` // Renamed from Summary to match frontend payload
-	ReadTime    int    `json:"readTime"`    // Match frontend payload casing
-	IsActive    bool   `json:"isActive"`    // Match frontend payload casing
-	ImageURL    string `json:"imageUrl"`    // Add ImageUrl field
+	Description string `json:"description"` // Frontend sends 'description', maps to 'Summary'
+	ReadTime    int    `json:"readTime"`    // Frontend sends 'readTime', maps to 'ReadTime'
+	IsActive    bool   `json:"isActive"`    // Frontend sends 'isActive', maps to 'IsActive'
+	ImageURL    string `json:"imageUrl"`    // Frontend sends 'imageUrl', maps to 'ImageURL'
+	Category    string `json:"category"`    // Added Category
+	Tags        string `json:"tags"`        // Added Tags (comma-separated string)
 }
 
 // PostUpdateRequest represents the request to update a post
 type PostUpdateRequest struct {
 	Title       string `json:"title" binding:"required"`
 	Content     string `json:"content" binding:"required"`
-	Description string `json:"description"`
-	ReadTime    int    `json:"readTime"`
-	IsActive    bool   `json:"isActive"`
-	ImageURL    string `json:"imageUrl"` // Add ImageUrl field
+	Description string `json:"description"` // Frontend sends 'description', maps to 'Summary'
+	ReadTime    int    `json:"readTime"`    // Frontend sends 'readTime', maps to 'ReadTime'
+	IsActive    bool   `json:"isActive"`    // Frontend sends 'isActive', maps to 'IsActive'
+	ImageURL    string `json:"imageUrl"`    // Frontend sends 'imageUrl', maps to 'ImageURL'
+	Category    string `json:"category"`    // Added Category
+	Tags        string `json:"tags"`        // Added Tags (comma-separated string)
 }
 
 type PostListResponse struct {
@@ -46,7 +52,10 @@ type PostListResponse struct {
 	ImageURL  string    `json:"image_url"`
 	ReadTime  int       `json:"read_time"`
 	LikeCount int       `json:"like_count"`
+	IsActive  bool      `json:"is_active"` // Added IsActive
 	CreatedAt time.Time `json:"created_at"`
+	Category  string    `json:"category,omitempty"` // Added Category
+	Tags      string    `json:"tags,omitempty"`     // Added Tags
 }
 
 type PostDetailResponse struct {
@@ -57,7 +66,11 @@ type PostDetailResponse struct {
 	ImageURL  string    `json:"image_url"`
 	ReadTime  int       `json:"read_time"`
 	LikeCount int       `json:"like_count"`
+	IsActive  bool      `json:"is_active"` // Added IsActive
 	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`         // Added UpdatedAt
+	Category  string    `json:"category,omitempty"` // Added Category
+	Tags      string    `json:"tags,omitempty"`     // Added Tags
 }
 
 type PaginatedPostResponse struct {
@@ -77,7 +90,10 @@ func ToPostListResponse(post *models.Post) PostListResponse {
 		ImageURL:  post.ImageURL,
 		ReadTime:  post.ReadTime,
 		LikeCount: post.LikeCount,
+		IsActive:  post.IsActive, // Added IsActive
 		CreatedAt: post.CreatedAt,
+		Category:  post.Category, // Added Category
+		Tags:      post.Tags,     // Added Tags
 	}
 }
 
@@ -90,7 +106,11 @@ func ToPostDetailResponse(post *models.Post) PostDetailResponse {
 		ImageURL:  post.ImageURL,
 		ReadTime:  post.ReadTime,
 		LikeCount: post.LikeCount,
+		IsActive:  post.IsActive, // Added IsActive
 		CreatedAt: post.CreatedAt,
+		UpdatedAt: post.UpdatedAt, // Added UpdatedAt
+		Category:  post.Category,  // Added Category
+		Tags:      post.Tags,      // Added Tags
 	}
 }
 
