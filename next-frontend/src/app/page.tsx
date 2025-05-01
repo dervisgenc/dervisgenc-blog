@@ -21,7 +21,7 @@ async function getFeaturedPost(): Promise<PostListItem | null> {
   try {
     // Fetch the very first post (most recent)
     const response = await fetch(`${API_URL}/posts/paginated?page=1&size=1`, {
-      next: { revalidate: 3600 }, // Revalidate every hour
+      next: { revalidate: 60 }, // Revalidate every minute
     })
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`)
