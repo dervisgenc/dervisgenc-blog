@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/dervisgenc/dervisgenc-blog/backend/internal/auth"
+	"github.com/dervisgenc/dervisgenc-blog/backend/internal/comment"
 	"github.com/dervisgenc/dervisgenc-blog/backend/internal/image"
 	"github.com/dervisgenc/dervisgenc-blog/backend/internal/like"
 	"github.com/dervisgenc/dervisgenc-blog/backend/internal/post"
@@ -197,16 +198,19 @@ func (a *App) setupRouter() *gin.Engine {
 	}))
 
 	//Add error handling and logging middleware
-	r.Use(middleware.LoggingMiddleware(a.logger))
+	r.Use(middleware.LoggingMiddleware(a.logger)) // Ensure logger is added to context here
 	r.Use(middleware.ErrorMiddleware())
 	r.Use(middleware.DBMiddleware(a.db))
 
 	// Create stats worker with logger
-	statRepo := stat.NewStatRepository(a.db)
+	// Pass logger to StatRepository
+	statRepo := stat.NewStatRepository(a.db, a.logger)
 	a.statsWorker = stat.NewStatsWorker(statRepo, 5, a.logger) // Pass logger
 
 	// Add stats middleware with worker
 	r.Use(middleware.StatsMiddleware(a.statsWorker))
+	// Apply PostViewMiddleware AFTER other global middleware but BEFORE specific routes are defined
+	// It needs the logger from LoggingMiddleware and needs to run for the /api group
 	r.Use(middleware.PostViewMiddleware(a.statsWorker))
 
 	return r
@@ -237,29 +241,32 @@ func (a *App) initializeHandlers() *routes.HandlerContainer {
 
 	// Initialize repositories
 	loginRepo := auth.NewUserRepository(a.db)
-	postRepo := post.NewPostRepository(a.db)
-	statRepo := stat.NewStatRepository(a.db)
+	postRepo := post.NewPostRepository(a.db, a.logger)
+	statRepo := stat.NewStatRepository(a.db, a.logger)
+	likeRepo := like.NewLikeRepository(a.db)
+	commentRepo := comment.NewCommentRepository(a.db, a.logger) // Initialize Comment Repository
 
+	// Initialize services
 	loginService := auth.NewLoginService(loginRepo, a.cfg.JWTSecret)
-	postService := post.NewPostService(postRepo, imgService.GetImageURL("")) // Pass base URL or rely on imageService
+	postService := post.NewPostService(postRepo, imgService.GetImageURL(""))
 	statService := stat.NewStatService(statRepo)
+	likeService := like.NewLikeService(likeRepo)
+	commentService := comment.NewCommentService(commentRepo, a.logger) // Initialize Comment Service
 
 	// Initialize handlers
 	loginHandler := auth.NewLoginHandler(loginService)
-	postHandler := post.NewPostHandler(postService, imgService) // Pass imgService
+	postHandler := post.NewPostHandler(postService, imgService)
 	statHandler := stat.NewStatHandler(statService)
-	imageHandler := image.NewImageHandler(imgService) // Initialize image handler
-
-	// Initialize like repository and service
-	likeRepo := like.NewLikeRepository(a.db)
-	likeService := like.NewLikeService(likeRepo)
+	imageHandler := image.NewImageHandler(imgService)
 	likeHandler := like.NewLikeHandler(likeService)
+	commentHandler := comment.NewCommentHandler(commentService, a.logger) // Initialize Comment Handler
 
 	return &routes.HandlerContainer{
-		Auth:  loginHandler,
-		Post:  postHandler,
-		Stats: statHandler,
-		Like:  likeHandler,
-		Image: imageHandler, // Add image handler
+		Auth:    loginHandler,
+		Post:    postHandler,
+		Stats:   statHandler,
+		Like:    likeHandler,
+		Image:   imageHandler,
+		Comment: commentHandler, // Add comment handler
 	}
 }

@@ -2,7 +2,8 @@ package routes
 
 import (
 	"github.com/dervisgenc/dervisgenc-blog/backend/internal/auth"
-	"github.com/dervisgenc/dervisgenc-blog/backend/internal/image" // Import image handler
+	"github.com/dervisgenc/dervisgenc-blog/backend/internal/comment" // Import comment
+	"github.com/dervisgenc/dervisgenc-blog/backend/internal/image"
 	"github.com/dervisgenc/dervisgenc-blog/backend/internal/like"
 	"github.com/dervisgenc/dervisgenc-blog/backend/internal/post"
 	"github.com/dervisgenc/dervisgenc-blog/backend/internal/stat"
@@ -11,11 +12,12 @@ import (
 )
 
 type HandlerContainer struct {
-	Post  *post.PostHandler
-	Auth  *auth.LoginHandler
-	Like  *like.LikeHandler
-	Stats *stat.StatHandler
-	Image *image.ImageHandler // Add Image handler
+	Post    *post.PostHandler
+	Auth    *auth.LoginHandler
+	Like    *like.LikeHandler
+	Stats   *stat.StatHandler
+	Image   *image.ImageHandler
+	Comment *comment.CommentHandler // Add Comment handler
 }
 
 func SetupRoutes(r *gin.Engine, h *HandlerContainer, jwtSecret []byte) {
@@ -39,6 +41,11 @@ func SetupRoutes(r *gin.Engine, h *HandlerContainer, jwtSecret []byte) {
 			posts.POST("/:id/like", h.Like.ToggleLike)        // -> /api/posts/:id/like
 			posts.GET("/:id/like", h.Like.GetLikeStatus)      // -> /api/posts/:id/like
 			posts.POST("/:id/share", h.Stats.IncrementShare)  // -> /api/posts/:id/share
+			posts.GET("/:id/related", h.Post.GetRelatedPosts) // -> /api/posts/:id/related (YENİ EKLENDİ)
+
+			// Add Comment Routes (Public)
+			posts.POST("/:id/comments", h.Comment.HandleCreateComment)    // Create comment for post :id
+			posts.GET("/:id/comments", h.Comment.HandleGetCommentsByPost) // Get approved comments for post :id
 		}
 
 		// Admin routes within /api
@@ -53,27 +60,36 @@ func SetupRoutes(r *gin.Engine, h *HandlerContainer, jwtSecret []byte) {
 func setupAdminRoutes(rg *gin.RouterGroup, h *HandlerContainer) {
 	posts := rg.Group("/posts")
 	{
-		posts.GET("/detailed-stats", h.Stats.GetDetailedPostStats)
+		posts.GET("/detailed-stats", h.Stats.GetDetailedPostStats) // Keep this for detailed post list
 		posts.POST("", h.Post.CreatePost)
-		posts.GET("", h.Post.GetAllAdmin) // Route to get all posts (including drafts) for admin view
+		posts.GET("", h.Post.GetAllAdmin)
 		posts.PUT("/:id", h.Post.UpdatePost)
-		posts.GET("/:id", h.Post.GetPostByIDAdmin) // Route to get a specific post for editing
+		posts.GET("/:id", h.Post.GetPostByIDAdmin)
 		posts.DELETE("/:id", h.Post.DeletePost)
 		posts.DELETE("/:id/permanent", h.Post.DeletePostPermanently)
-		posts.GET("/stats", h.Stats.GetAllPostsStats)
+		// posts.GET("/stats", h.Stats.GetAllPostsStats) // Can be removed if detailed-stats is preferred
 		posts.GET("/stats/:id", h.Stats.GetPostStats)
 		posts.GET("/count", h.Stats.CountPosts)
 	}
 
 	stats := rg.Group("/stats")
 	{
+		stats.GET("/overall", h.Stats.GetOverallStats)
 		stats.GET("/detailed", h.Stats.GetDetailedStats)
-		stats.GET("/posts", h.Stats.GetDetailedPostStats)
+		stats.GET("/traffic", h.Stats.GetDailyTrafficStats) // Add route for traffic chart data
 	}
 
 	// Image upload route under /admin
 	images := rg.Group("/images")
 	{
 		images.POST("/upload", h.Image.UploadImage) // -> /api/admin/images/upload
+	}
+
+	// Add Comment Routes (Admin)
+	commentsAdmin := rg.Group("/comments")
+	{
+		commentsAdmin.GET("", h.Comment.HandleGetAllCommentsAdmin)                  // Get all comments (paginated, filtered)
+		commentsAdmin.PATCH("/:comment_id/approve", h.Comment.HandleApproveComment) // Approve a comment
+		commentsAdmin.DELETE("/:comment_id", h.Comment.HandleDeleteComment)         // Delete a comment
 	}
 }

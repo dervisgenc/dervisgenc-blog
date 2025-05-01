@@ -13,13 +13,14 @@ func MigrateSchema(db *gorm.DB) error {
 	// Auto-migrate all models
 	return db.AutoMigrate(
 		&models.User{},
-		&models.Post{},
+		&models.Post{}, // This will add Category and Tags if they don't exist
 		&models.Stat{},
 		&models.PostLike{},
 		&models.PostShare{},
 		&models.Visitor{},
 		&models.PostView{},
 		&models.DailyStat{},
+		&models.Comment{}, // Ensure Comment is also migrated if added in a later migration file originally
 	)
 }
 
@@ -42,6 +43,10 @@ func CreateIndices(db *gorm.DB) error {
 
 	// Daily stats indices
 	db.Exec(`CREATE INDEX IF NOT EXISTS idx_daily_stats_date ON daily_stats(date)`)
+
+	// Post indices (Add category and tags)
+	db.Exec(`CREATE INDEX IF NOT EXISTS idx_posts_category ON posts(category)`)
+	db.Exec(`CREATE INDEX IF NOT EXISTS idx_posts_tags ON posts(tags)`) // Index for tags if needed for searching
 
 	return nil
 }
@@ -72,10 +77,20 @@ func CreateTriggers(db *gorm.DB) error {
 
 // Initialize initializes the database schema and required objects
 func Initialize(db *gorm.DB) error {
-	// First run migrations
+	// First run initial migrations
 	if err := MigrateSchema(db); err != nil {
 		return err
 	}
+
+	// Run comment migration (assuming 000002 adds comments)
+	// if err := Up_000002(db); err != nil { // Call the new migration function
+	// 	return err
+	// }
+
+	// Run category/tags migration (assuming 000003 adds category/tags - now handled by MigrateSchema)
+	// if err := Up_000003(db); err != nil {
+	// 	return err
+	// }
 
 	// Then create indices
 	if err := CreateIndices(db); err != nil {
