@@ -1,44 +1,35 @@
 import Link from "next/link"
 import Image from "next/image"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { PostListItem } from "@/types" // Assuming PostListItem is defined in types
+import { PostListItem, ErrorResponse } from "@/types" // Assuming PostListItem is defined in types
 
-// Mock data for related posts - Replace with API call
-const mockRelatedPosts: PostListItem[] = [
-  {
-    id: 2,
-    title: "The Rise of AI in Cybersecurity: Opportunities and Challenges",
-    summary: "Exploring how artificial intelligence is transforming the cybersecurity landscape.",
-    image_url: "/placeholder.svg?height=200&width=300",
-    read_time: 6,
-    like_count: 98,
-    created_at: "2025-04-15T10:00:00Z",
-  },
-  {
-    id: 3,
-    title: "Securing Your Smart Home: A Comprehensive Guide",
-    summary: "Practical tips and strategies to protect your connected home devices from cyber threats.",
-    image_url: "/placeholder.svg?height=200&width=300",
-    read_time: 7,
-    like_count: 115,
-    created_at: "2025-04-10T14:30:00Z",
-  },
-  {
-    id: 4,
-    title: "Understanding Phishing Attacks and How to Avoid Them",
-    summary: "Learn to identify and protect yourself from common phishing scams.",
-    image_url: "/placeholder.svg?height=200&width=300",
-    read_time: 4,
-    like_count: 76,
-    created_at: "2025-04-05T09:15:00Z",
-  },
-]
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://blog.dervisgenc.com/api";
 
-// This would be replaced with a database query or API call in a real application
+// Fetch related posts from the backend API
 async function getRelatedPosts(currentPostId: number): Promise<PostListItem[]> {
-  // Simulate fetching posts and filtering out the current one
-  // In a real app, you might fetch based on tags, category, etc.
-  return mockRelatedPosts.filter((post) => post.id !== currentPostId).slice(0, 3) // Limit to 3 related posts
+  try {
+    const response = await fetch(`${API_URL}/posts/${currentPostId}/related?limit=3`, {
+      next: { revalidate: 3600 }, // Cache for 1 hour, adjust as needed
+    });
+
+    if (!response.ok) {
+      // Log error but return empty array to prevent breaking the page
+      console.error(`API Error fetching related posts: ${response.status} ${response.statusText}`);
+      try {
+        const errorData: ErrorResponse = await response.json();
+        console.error("Error details:", errorData.error);
+      } catch (jsonError) {
+        console.error("Could not parse error response JSON");
+      }
+      return [];
+    }
+
+    const data: PostListItem[] = await response.json();
+    return data;
+  } catch (error) {
+    console.error("Failed to fetch related posts:", error);
+    return []; // Return empty array on network or other errors
+  }
 }
 
 interface RelatedPostsProps {
@@ -49,7 +40,7 @@ export default async function RelatedPosts({ currentPostId }: RelatedPostsProps)
   const relatedPosts = await getRelatedPosts(currentPostId)
 
   if (!relatedPosts || relatedPosts.length === 0) {
-    return null // Don't render anything if no related posts
+    return null // Don't render anything if no related posts or fetch failed
   }
 
   return (

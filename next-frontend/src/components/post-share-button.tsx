@@ -24,7 +24,7 @@ export default function PostShareButton({ postId, title }: PostShareButtonProps)
     setCopied(true)
 
     // Track share in backend
-    trackShare(postId, "copy")
+    trackShare(postId, "copy") // Pass platform 'copy'
 
     toast({
       title: "Link copied",
@@ -34,25 +34,40 @@ export default function PostShareButton({ postId, title }: PostShareButtonProps)
     setTimeout(() => setCopied(false), 2000)
   }
 
+  // Updated trackShare function
   const trackShare = async (postId: number, platform: string) => {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://blog.dervisgenc.com/api"
     try {
-      // In a real app, this would be an API call to /api/posts/:id/share
-      // const response = await fetch(`/api/posts/${postId}/share`, {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ platform }),
-      // });
-      // if (!response.ok) throw new Error('Failed to track share');
+      const response = await fetch(`${apiUrl}/posts/${postId}/share`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          // No Authorization needed for public share tracking usually
+        },
+        // Backend might expect platform in body, adjust if needed
+        // body: JSON.stringify({ platform }),
+      });
 
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 100))
+      if (!response.ok) {
+        // Log error but don't necessarily block user action
+        console.error(`Failed to track share (${platform}): ${response.status}`);
+        // Optionally show a silent error toast or log to monitoring
+        // toast({
+        //   title: "Share Tracking Failed",
+        //   description: "Could not record the share action.",
+        //   variant: "destructive",
+        // });
+      }
+      // No need to update UI state based on share tracking success/failure usually
     } catch (error) {
-      console.error("Failed to track share:", error)
+      console.error(`Failed to track share (${platform}):`, error)
+      // Optionally show a silent error toast or log to monitoring
     }
   }
 
+
   const handleSocialShare = (platform: string, url: string) => {
-    trackShare(postId, platform)
+    trackShare(postId, platform) // Track the specific platform
     window.open(url, "_blank", "noopener,noreferrer")
   }
 

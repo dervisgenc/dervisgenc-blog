@@ -4,10 +4,18 @@ import { Button } from "@/components/ui/button"
 import { Clock, Calendar } from "lucide-react"
 import PostList from "@/components/post-list"
 import { PostListItem, PaginatedPostResponse } from "@/types"
-import { formatDistanceToNow } from "date-fns"
+import { format } from "date-fns"
 import { Separator } from "@/components/ui/separator"
+import { Card } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://blog.dervisgenc.com/api"
+
+// Helper function to capitalize the first letter
+const capitalizeFirstLetter = (string: string | undefined): string => {
+  if (!string) return "";
+  return string.charAt(0).toUpperCase() + string.slice(1);
+}
 
 async function getFeaturedPost(): Promise<PostListItem | null> {
   try {
@@ -33,40 +41,47 @@ export default async function Home() {
     <div className="container py-6">
       {/* Featured Post */}
       {featuredPost && (
-        <section className="mb-6">
-          <div className="grid gap-4 md:grid-cols-5 md:gap-6">
-            {/* Image container spans 2 columns */}
-            <div className="relative aspect-[16/10] overflow-hidden rounded-lg md:col-span-2">
-              <Image
-                src={featuredPost.image_url || "/placeholder.svg"}
-                alt={featuredPost.title}
-                fill
-                className="object-cover"
-                priority
-                sizes="(max-width: 768px) 100vw, 40vw"
-              />
-            </div>
-            {/* Text content spans 3 columns */}
-            <div className="flex flex-col justify-center md:col-span-3">
-              <h1 className="mb-1 text-lg font-semibold leading-tight tracking-tight md:text-xl lg:text-xl">
-                {featuredPost.title}
-              </h1>
-              <p className="mb-2 line-clamp-2 text-xs text-muted-foreground md:line-clamp-3 md:text-sm">{featuredPost.summary}</p>
-              <div className="mb-2 flex flex-wrap items-center gap-3">
-                <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                  <Calendar className="h-3 w-3" />
-                  <span>{formatDistanceToNow(new Date(featuredPost.created_at), { addSuffix: true })}</span>
-                </div>
-                <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                  <Clock className="h-3 w-3" />
-                  <span>{featuredPost.read_time} min read</span>
-                </div>
+        <section className="mb-12">
+          {/* Card has border-none and bg-transparent */}
+          <Card className="overflow-hidden border-none bg-transparent">
+            <div className="grid gap-6 md:grid-cols-2">
+              {/* Image container */}
+              <div className="relative aspect-[3/4] overflow-hidden rounded-lg md:aspect-auto md:h-full">
+                <Image
+                  src={featuredPost.image_url || "/placeholder.svg"}
+                  alt={featuredPost.title}
+                  fill
+                  className="object-cover"
+                  priority
+                />
               </div>
-              <Button asChild size="sm" className="mt-1 w-fit bg-cyan-600 hover:bg-cyan-700">
-                <Link href={`/post/${featuredPost.id}`}>Read Article</Link>
-              </Button>
+              {/* Text container: Add min-height for medium screens and up */}
+              <div className="flex flex-col justify-center md:min-h-[280px]">
+                {featuredPost.category && (
+                  <Badge className="mb-2 w-fit bg-cyan-600 hover:bg-cyan-700">{capitalizeFirstLetter(featuredPost.category)}</Badge>
+                )}
+                <h1 className="mb-2 text-2xl font-bold leading-tight tracking-tight md:text-3xl lg:text-4xl">
+                  {featuredPost.title}
+                </h1>
+                <p className="mb-4 text-muted-foreground">{featuredPost.summary}</p>
+                <div className="mb-4 flex flex-wrap items-center gap-4">
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                      <Calendar className="h-4 w-4" />
+                      <span>{format(new Date(featuredPost.created_at), "PPP")}</span>
+                    </div>
+                    <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                      <Clock className="h-4 w-4" />
+                      <span>{featuredPost.read_time} min read</span>
+                    </div>
+                  </div>
+                </div>
+                <Button asChild className="w-fit bg-cyan-600 hover:bg-cyan-700">
+                  <Link href={`/post/${featuredPost.id}`}>Read Article</Link>
+                </Button>
+              </div>
             </div>
-          </div>
+          </Card>
         </section>
       )}
 
