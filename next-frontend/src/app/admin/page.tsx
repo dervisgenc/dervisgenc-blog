@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react" // Import Suspense
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -19,6 +19,7 @@ import DeletePostDialog from "@/components/delete-post-dialog"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import TrafficChart from "@/components/traffic-chart" // Import the new chart component
 import ImageWithFallback from "@/components/image-with-fallback" // Import the new component
+import { Skeleton } from "@/components/ui/skeleton" // Import Skeleton for fallback
 
 // Initial state for overall stats
 const initialOverallStats: OverallStatsResponse = {
@@ -28,7 +29,8 @@ const initialOverallStats: OverallStatsResponse = {
   total_shares: 0,
 };
 
-export default function AdminPage() {
+// Define the main AdminPage component (keep existing logic)
+function AdminPageComponent() {
   const [authChecked, setAuthChecked] = useState(false)
   const [isAuthenticatedState, setIsAuthenticatedState] = useState(false)
   const [activeTab, setActiveTab] = useState("dashboard")
@@ -600,4 +602,26 @@ export default function AdminPage() {
 
     </div>
   )
+}
+
+// Define a loading fallback component
+function LoadingFallback() {
+    return (
+        <div className="container flex min-h-screen items-center justify-center py-12">
+            <div className="text-center">
+                <div className="mb-4 h-8 w-8 animate-spin rounded-full border-4 border-cyan-600 border-t-transparent"></div>
+                <p className="text-muted-foreground">Loading Admin...</p>
+            </div>
+        </div>
+    );
+}
+
+
+// Wrap the main component with Suspense
+export default function AdminPage() {
+    return (
+        <Suspense fallback={<LoadingFallback />}>
+            <AdminPageComponent />
+        </Suspense>
+    );
 }

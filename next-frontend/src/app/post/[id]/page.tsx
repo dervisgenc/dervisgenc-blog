@@ -1,3 +1,4 @@
+import { use } from "react"; 
 import Image from "next/image"
 import Link from "next/link"
 import { notFound } from "next/navigation"
@@ -20,6 +21,10 @@ const capitalizeFirstLetter = (string: string) => {
   if (!string) return string;
   return string.charAt(0).toUpperCase() + string.slice(1);
 }
+
+export const dynamic   = 'force-dynamic'  // opt into per-request SSR
+export const revalidate = 0              // skip ISR cache entirely
+
 
 // Fetch post data from the backend API
 async function getPost(id: string): Promise<PostDetail | null> {
@@ -118,22 +123,17 @@ export async function generateStaticParams() {
   }
 }
 
-// Type for page props
-type PageProps = {
-  params: Promise<{ id: string }> | { id: string };
-}
-
-export default async function PostPage({ params }: PageProps) {
-  // Await the params if it's a Promise
-  const resolvedParams = 'then' in params ? await params : params;
-  const postId = resolvedParams.id;
+// Update the type definition to match Next.js 15.3.1 requirements
+export default async function PostPage(
+  { params }: { params: Promise<{ id: string }> }          // ① declare Promise
+) {
+  const { id: postId } = await params; 
 
   // Fetch post and like status concurrently
   const [post, likeStatus] = await Promise.all([
     getPost(postId),
     getLikeStatus(postId) // Fetch like status
   ]);
-
 
   if (!post) {
     notFound()
