@@ -1,7 +1,5 @@
 package like
 
-import "github.com/dervisgenc/dervisgenc-blog/backend/pkg/models"
-
 type LikeService struct {
 	repo LikeRepository
 }
@@ -10,11 +8,14 @@ func NewLikeService(repo LikeRepository) *LikeService {
 	return &LikeService{repo: repo}
 }
 
-func (s *LikeService) ToggleLike(postID uint, ipAddress string) (*models.LikeResponse, error) {
+// ToggleLike toggles the like status and returns the new status and count.
+func (s *LikeService) ToggleLike(postID uint, ipAddress string) (bool, int, error) {
 	hasLiked, err := s.repo.HasLiked(postID, ipAddress)
 	if err != nil {
-		return nil, err
+		return false, 0, err
 	}
+
+	newLikedStatus := !hasLiked // Determine the new status *before* the action
 
 	if hasLiked {
 		err = s.repo.RemoveLike(postID, ipAddress)
@@ -23,18 +24,17 @@ func (s *LikeService) ToggleLike(postID uint, ipAddress string) (*models.LikeRes
 	}
 
 	if err != nil {
-		return nil, err
+		// If the error occurred, the status didn't actually change
+		return hasLiked, 0, err
 	}
 
 	count, err := s.repo.GetLikeCount(postID)
 	if err != nil {
-		return nil, err
+		// Even if count fails, the like/unlike succeeded, return the new status
+		return newLikedStatus, 0, err
 	}
 
-	return &models.LikeResponse{
-		Success: true,
-		Likes:   count,
-	}, nil
+	return newLikedStatus, count, nil
 }
 
 func (s *LikeService) GetLikeStatus(postID uint, ipAddress string) (bool, int, error) {

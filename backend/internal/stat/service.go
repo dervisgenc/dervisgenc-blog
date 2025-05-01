@@ -40,3 +40,13 @@ func (s *StatService) IncrementShareCount(postID uint) error {
 func (s *StatService) GetDetailedPostStats() (*models.DetailedStatsResponse, error) {
 	return s.statRepo.GetDetailedPostStats()
 }
+
+// GetOverallStats retrieves the overall blog statistics.
+func (s *StatService) GetOverallStats() (*models.OverallStatsResponse, error) {
+	return s.statRepo.GetOverallStats()
+}
+
+// GetDailyTrafficStats retrieves daily views and unique visitors for charting.
+func (s *StatService) GetDailyTrafficStats(startDate, endDate time.Time) ([]models.DailyTrafficStat, error) {
+	return s.statRepo.GetDailyTrafficStats(startDate, endDate)
+}

@@ -2,6 +2,15 @@ package models
 
 import "time"
 
+// OverallStatsResponse holds the aggregated stats for the dashboard cards.
+type OverallStatsResponse struct {
+	TotalPosts  int64 `json:"total_posts"`
+	TotalViews  int64 `json:"total_views"`
+	TotalLikes  int64 `json:"total_likes"`
+	TotalShares int64 `json:"total_shares"`
+	// Add other overall stats if needed, e.g., TotalComments
+}
+
 type DetailedStatsResponse struct {
 	TotalStats struct {
 		TotalViews  int64 `json:"total_views"`
@@ -17,7 +26,7 @@ type PostDetailedStats struct {
 	Views     int    `json:"views"`
 	Likes     int    `json:"likes"`
 	Shares    int    `json:"shares"`
-	CreatedAt string `json:"created_at"`
+	CreatedAt string `json:"created_at"` // Use string for frontend compatibility
 }
 
 type PostDetailedResponse struct {
@@ -36,4 +45,11 @@ type MonthlyStats struct {
 	Views  int    `json:"views"`
 	Likes  int    `json:"likes"`
 	Shares int    `json:"shares"`
+}
+
+// DailyTrafficStat holds aggregated views and unique visitors for a specific day.
+type DailyTrafficStat struct {
+	Date           string `json:"date"` // Format YYYY-MM-DD
+	Views          int    `json:"views"`
+	UniqueVisitors int    `json:"unique_visitors"`
 }

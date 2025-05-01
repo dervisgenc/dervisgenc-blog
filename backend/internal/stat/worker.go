@@ -50,14 +50,29 @@ func (w *StatsWorker) processVisits() {
 
 func (w *StatsWorker) processViews() {
 	for view := range w.viewChan {
+		// --- Add Logging ---
+		w.logger.WithFields(logrus.Fields{
+			"post_id":    view.PostID,
+			"ip_address": view.IPAddress,
+		}).Info("StatsWorker: Received view from channel, attempting to record.") // Log reception
+		// --- End Logging ---
+
 		if err := w.repository.RecordPostView(view); err != nil {
 			w.logger.WithFields(logrus.Fields{
 				"post_id":    view.PostID,
 				"ip_address": view.IPAddress,
 				"error":      err.Error(),
-			}).Error("Failed to record post view")
+			}).Error("StatsWorker: Failed to record post view in repository") // More specific error message
+		} else {
+			// --- Add Success Logging ---
+			w.logger.WithFields(logrus.Fields{
+				"post_id":    view.PostID,
+				"ip_address": view.IPAddress,
+			}).Info("StatsWorker: Successfully recorded post view") // Log success
+			// --- End Success Logging ---
 		}
 	}
+	w.logger.Info("StatsWorker: viewChan closed, processViews goroutine finishing.") // Log when channel closes
 }
 
 func (w *StatsWorker) QueueVisit(visitor *models.Visitor) {

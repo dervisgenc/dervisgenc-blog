@@ -1,30 +1,49 @@
 package middleware
 
 import (
-	// Add this import
+	// Keep errors import if needed elsewhere, or remove if not
 	"fmt"
 
 	myerr "github.com/dervisgenc/dervisgenc-blog/backend/pkg"
-	"github.com/dervisgenc/dervisgenc-blog/backend/pkg/models"
 	"github.com/gin-gonic/gin"
+	"github.com/sirupsen/logrus"
 )
 
+// ErrorMiddleware handles errors encountered during request processing.
 func ErrorMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		c.Next() // Start next middleware
+		c.Next() // Process request
 
-		// Catch errors
-		err := c.Errors.Last()
-		fmt.Println(c.Errors)
-		if err != nil {
-			// Get HTTP status code from error
-			status := myerr.HTTPStatus(err.Err)
+		// Check for errors
+		if len(c.Errors) > 0 {
+			err := c.Errors.Last().Err // Get the last error
 
-			// Return error response
-			c.JSON(status, models.ErrorResponse{
-				Error: err.Err.Error(),
-			})
-			c.Abort()
+			// Log the error with details
+			logger, exists := c.Get("logger")
+			logEntry := logrus.StandardLogger().WithContext(c) // Default logger
+			if exists {
+				if l, ok := logger.(*logrus.Logger); ok {
+					logEntry = l.WithContext(c)
+				}
+			}
+
+			detailedErrorMsg := fmt.Sprintf("%+v", err)
+			logEntry.Errorf("Error processing request: %s", detailedErrorMsg)
+
+			// --- MODIFICATION START ---
+			// Determine HTTP status code using the myerr package function
+			statusCode := myerr.HTTPStatus(err) // Use the HTTPStatus function
+			// --- MODIFICATION END ---
+
+			// Prepare error response
+			response := gin.H{
+				"error":   err.Error(),
+				"details": detailedErrorMsg, // Consider removing in production
+			}
+
+			// Respond with JSON
+			c.JSON(statusCode, response)
+			c.Abort() // Stop further processing if needed
 		}
 	}
 }

@@ -23,8 +23,11 @@ func NewLikeHandler(service *LikeService) *LikeHandler {
 // @Accept json
 // @Produce json
 // @Param id path int true "Post ID"
-// @Success 200 {object} LikeResponse
-// @Failure 400 {object} ErrorResponse
+// @Success 200 {object} models.LikeResponse "Includes has_liked and likes count"
+// @Failure 400 {object} models.ErrorResponse "Invalid post ID"
+// @Failure 404 {object} models.ErrorResponse "Post not found"
+// @Failure 409 {object} models.ErrorResponse "Conflict (e.g., already liked/unliked)"
+// @Failure 500 {object} models.ErrorResponse "Internal Server Error"
 // @Router /posts/{id}/like [post]
 func (h *LikeHandler) ToggleLike(c *gin.Context) {
 	postID, err := strconv.ParseUint(c.Param("id"), 10, 32)
@@ -34,19 +37,31 @@ func (h *LikeHandler) ToggleLike(c *gin.Context) {
 	}
 
 	ipAddress := c.ClientIP()
-	response, err := h.service.ToggleLike(uint(postID), ipAddress)
+	// Call service which now returns new liked status and count
+	newLikedStatus, newCount, err := h.service.ToggleLike(uint(postID), ipAddress)
 	if err != nil {
-		status := http.StatusInternalServerError
-		if strings.Contains(err.Error(), "already liked") {
+		// Use the error handling middleware's status code if available
+		// Otherwise, determine status based on error type
+		status := http.StatusInternalServerError // Default
+		errMsg := "Failed to toggle like status"
+		if httpErr, ok := err.(interface{ HTTPStatus() int }); ok {
+			status = httpErr.HTTPStatus()
+		} else if strings.Contains(err.Error(), "duplicate key") || strings.Contains(err.Error(), "already liked") {
 			status = http.StatusConflict
-		} else if strings.Contains(err.Error(), "like not found") {
+			errMsg = "Conflict toggling like status." // More generic conflict message
+		} else if strings.Contains(err.Error(), "not found") {
 			status = http.StatusNotFound
+			errMsg = "Post or like not found."
 		}
-		c.JSON(status, gin.H{"error": err.Error()})
+		c.JSON(status, gin.H{"error": errMsg})
 		return
 	}
 
-	c.JSON(http.StatusOK, response)
+	// Return the new status and count
+	c.JSON(http.StatusOK, gin.H{
+		"has_liked": newLikedStatus,
+		"likes":     newCount,
+	})
 }
 
 // GetLikeStatus godoc

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	myerr "github.com/dervisgenc/dervisgenc-blog/backend/pkg"
+	"github.com/dervisgenc/dervisgenc-blog/backend/pkg/models" // Ensure models is imported
 	"github.com/gin-gonic/gin"
 )
 
@@ -166,6 +167,24 @@ func (h *StatHandler) GetDetailedPostStats(c *gin.Context) {
 	c.JSON(http.StatusOK, stats)
 }
 
+// GetOverallStats godoc
+// @Summary Get overall blog statistics
+// @Description Get total posts, views, likes, and shares for the dashboard
+// @Tags Stats
+// @Accept json
+// @Produce json
+// @Success 200 {object} models.OverallStatsResponse
+// @Failure 500 {object} models.ErrorResponse
+// @Router /admin/stats/overall [get]
+func (h *StatHandler) GetOverallStats(c *gin.Context) {
+	stats, err := h.statService.GetOverallStats()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, stats)
+}
+
 func (h *StatHandler) IncrementShare(c *gin.Context) {
 	postID := c.Param("id")
 	id, err := strconv.ParseUint(postID, 10, 64)
@@ -180,4 +199,64 @@ func (h *StatHandler) IncrementShare(c *gin.Context) {
 	}
 
 	c.JSON(200, gin.H{"success": true})
+}
+
+// GetDailyTrafficStats godoc
+// @Summary Get daily traffic statistics for chart
+// @Description Get daily views and unique visitors within a date range (default last 30 days)
+// @Tags Stats
+// @Accept json
+// @Produce json
+// @Param start_date query string false "Start date (YYYY-MM-DD)" Format(date)
+// @Param end_date query string false "End date (YYYY-MM-DD)" Format(date)
+// @Success 200 {array} models.DailyTrafficStat
+// @Failure 400 {object} models.ErrorResponse "Invalid date format"
+// @Failure 500 {object} models.ErrorResponse "Internal Server Error"
+// @Router /admin/stats/traffic [get]
+func (h *StatHandler) GetDailyTrafficStats(c *gin.Context) {
+	// Default date range: last 30 days
+	endDate := time.Now()
+	startDate := endDate.AddDate(0, 0, -30)
+
+	dateFormat := "2006-01-02" // Expected date format
+
+	if sdStr := c.Query("start_date"); sdStr != "" {
+		parsedDate, err := time.Parse(dateFormat, sdStr)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid start_date format, use YYYY-MM-DD"})
+			return
+		}
+		startDate = parsedDate
+	}
+
+	if edStr := c.Query("end_date"); edStr != "" {
+		parsedDate, err := time.Parse(dateFormat, edStr)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid end_date format, use YYYY-MM-DD"})
+			return
+		}
+		endDate = parsedDate
+	}
+
+	// Ensure end date is after start date
+	if endDate.Before(startDate) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "end_date cannot be before start_date"})
+		return
+	}
+
+	// Adjust endDate to include the whole day
+	endDate = endDate.Add(23*time.Hour + 59*time.Minute + 59*time.Second)
+
+	stats, err := h.statService.GetDailyTrafficStats(startDate, endDate)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Return empty array instead of null if no stats found
+	if stats == nil {
+		stats = []models.DailyTrafficStat{}
+	}
+
+	c.JSON(http.StatusOK, stats)
 }
