@@ -49,8 +49,19 @@ func main() {
 		logger: logger,
 	}
 
-	if err := app.initialize(); err != nil {
-		app.logger.Fatalf("Failed to initialize app: %v", err)
+	var err error
+	for i := 0; i < 5; i++ {
+		err = app.initialize()
+		if err == nil {
+			break
+		}
+		app.logger.Warnf("Failed to initialize app (attempt %d/5): %v", i+1, err)
+		if i < 4 {
+			time.Sleep(4 * time.Second)
+		}
+	}
+	if err != nil {
+		app.logger.Fatalf("Failed to initialize app after 5 attempts: %v", err)
 	}
 
 	// Start the server in a goroutine
