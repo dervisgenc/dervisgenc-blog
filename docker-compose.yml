@@ -1,0 +1,118 @@
+# ============================================
+# Docker Compose - Blog Application
+# ============================================
+# Production: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+# Development: docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+# ============================================
+
+services:
+  # ----------------------------------------
+  # PostgreSQL Database with pg_cron
+  # ----------------------------------------
+  database:
+    build:
+      context: ./database
+      dockerfile: Dockerfile
+    container_name: blog-database
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-website}
+      POSTGRES_USER: ${DB_USER:-dervis}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Database password is required}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    networks:
+      - blog-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-dervis} -d ${DB_NAME:-website}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # ----------------------------------------
+  # Go Backend API
+  # ----------------------------------------
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: blog-backend
+    restart: unless-stopped
+    environment:
+      PORT: ":8080"
+      DB_HOST: database
+      DB_PORT: "5432"
+      DB_USER: ${DB_USER:-dervis}
+      DB_PASSWORD: ${DB_PASSWORD:?Database password is required}
+      DB_NAME: ${DB_NAME:-website}
+      JWT_SECRET: ${JWT_SECRET:?JWT secret is required}
+      APP_URL: ${APP_URL:-https://blog.dervisgenc.com}
+      LOG_OUTPUT: ${LOG_OUTPUT:-stdout}
+    volumes:
+      - uploads_data:/app/uploads
+      - backend_logs:/app/logs
+    ports:
+      - "8080:8080"
+    networks:
+      - blog-network
+    depends_on:
+      database:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  # ----------------------------------------
+  # Next.js Frontend
+  # ----------------------------------------
+  frontend:
+    build:
+      context: ./next-frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://blog.dervisgenc.com/api}
+        NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-https://blog.dervisgenc.com}
+    container_name: blog-frontend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      # Internal API URL for server-side requests
+      API_INTERNAL_URL: http://backend:8080
+    ports:
+      - "3000:3000"
+    networks:
+      - blog-network
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+# ----------------------------------------
+# Volumes - Persistent Data
+# ----------------------------------------
+volumes:
+  postgres_data:
+    name: blog_postgres_data
+  uploads_data:
+    name: blog_uploads_data
+  backend_logs:
+    name: blog_backend_logs
+
+# ----------------------------------------
+# Networks
+# ----------------------------------------
+networks:
+  blog-network:
+    name: blog-network
+    driver: bridge
