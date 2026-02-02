@@ -52,3 +52,15 @@ dist-ssr
 backend/uploads/
 main
 backend/main
+# Docker
+.env
+.env.local
+.env.*.local
+
+# Backups
+backups/
+
+# IDE
+.idea/
+*.swp
+*.swo
