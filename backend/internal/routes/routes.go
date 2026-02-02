@@ -24,6 +24,10 @@ func SetupRoutes(r *gin.Engine, h *HandlerContainer, jwtSecret []byte) {
 	// Tüm rotaları /api altına al
 	api := r.Group("/api")
 	{
+		// Health check endpoint for Docker healthcheck
+		api.GET("/health", func(c *gin.Context) {
+			c.JSON(200, gin.H{"status": "ok"})
+		})
 
 		// Serve static images - Make sure the path matches how URLs are constructed
 		// The URL path should be relative to the baseURL defined in config and LocalStorage
