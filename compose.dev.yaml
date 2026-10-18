@@ -1,0 +1,15 @@
+# Local development: runs only PostgreSQL, published on loopback so the API
+# can run on the host with `go run`. Used by `make dev-db`; the project and
+# volume names keep it apart from the production stack on the same machine.
+name: blog-dev
+
+services:
+  db:
+    ports:
+      - "127.0.0.1:${DEV_DB_PORT:-55432}:5432"
+
+volumes:
+  pgdata:
+    name: blog-dev-postgres
+  uploads:
+    name: blog-dev-uploads

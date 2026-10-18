@@ -1,0 +1,93 @@
+# The blog: PostgreSQL, the Go API and the Next.js frontend.
+#
+# Settings and secrets come from .env next to this file (see .env.example).
+# Use the Makefile targets (make up, make logs, make db-backup, ...).
+#
+# The API and the frontend listen on loopback only; nginx on the host routes
+# /api/ to the API and everything else to the frontend. PostgreSQL publishes
+# no port at all and is reachable only from the API container.
+#
+# Data lives in the external volumes blog-postgres and blog-uploads, so
+# `docker compose down -v` cannot delete it. `make up` creates them.
+name: blog
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
+# For the application containers: read-only root filesystem, no Linux
+# capabilities, no privilege escalation.
+x-hardened: &hardened
+  restart: unless-stopped
+  read_only: true
+  cap_drop: [ALL]
+  security_opt: ["no-new-privileges:true"]
+  tmpfs: [/tmp]
+  logging: *logging
+
+services:
+  db:
+    image: postgres:18-trixie
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-blog}
+      POSTGRES_USER: ${DB_USER:-blog}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env}
+    volumes:
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    security_opt: ["no-new-privileges:true"]
+    logging: *logging
+
+  backend:
+    <<: *hardened
+    build: ./backend
+    image: blog-backend:${IMAGE_TAG:-latest}
+    environment:
+      PUBLIC_URL: ${PUBLIC_URL:?set PUBLIC_URL in .env}
+      # Requests arrive from nginx through the Docker bridge gateway.
+      TRUSTED_PROXIES: ${TRUSTED_PROXIES:-127.0.0.1,::1,172.16.0.0/12,192.168.0.0/16,10.0.0.0/8}
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in .env}
+      SESSION_TTL: ${SESSION_TTL:-12h}
+      COOKIE_SECURE: ${COOKIE_SECURE:-true}
+      STATS_TIMEZONE: ${STATS_TIMEZONE:-Europe/Istanbul}
+      DB_HOST: db
+      DB_PORT: "5432"
+      DB_NAME: ${DB_NAME:-blog}
+      DB_USER: ${DB_USER:-blog}
+      DB_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env}
+    volumes:
+      - uploads:/data/uploads
+    ports:
+      - "127.0.0.1:${BACKEND_PORT:-8080}:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    <<: *hardened
+    build: ./frontend
+    image: blog-frontend:${IMAGE_TAG:-latest}
+    environment:
+      API_INTERNAL_URL: http://backend:8080
+      SITE_URL: ${PUBLIC_URL:?set PUBLIC_URL in .env}
+    tmpfs: [/tmp, /app/.next/cache]
+    ports:
+      - "127.0.0.1:${FRONTEND_PORT:-3000}:3000"
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  pgdata:
+    name: blog-postgres
+    external: true
+  uploads:
+    name: blog-uploads
+    external: true

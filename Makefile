@@ -1,143 +1,83 @@
-# ============================================
-# Makefile - Blog Application
-# ============================================
-# Common commands for development and deployment
-# ============================================
+COMPOSE        := docker compose
+DEV_COMPOSE    := DB_PASSWORD=blog PUBLIC_URL=http://localhost:3000 JWT_SECRET=dev \
+                  docker compose -f compose.yaml -f compose.dev.yaml
+VOLUMES        := blog-postgres blog-uploads
+BACKUP_DIR     ?= $(HOME)/backups/blog
+ABOUT_ROOT     ?= /var/www/dervisgenc.com
+TEST_DB_NAME   := blog-test-db
+TEST_DB_URL    := postgres://postgres:test@127.0.0.1:55433/postgres?sslmode=disable
+# Allocate a TTY only when there is one, so targets also work in scripts.
+EXEC           := $(COMPOSE) exec $(if $(shell [ -t 0 ] && echo y),,-T)
 
-.PHONY: help build up down logs restart clean deploy backup
+.DEFAULT_GOAL := help
+.PHONY: help up down restart build logs ps volumes admin-user db-psql db-backup \
+        uploads-backup backup test test-integration dev-db dev-db-down about deploy-about
 
-# Default target
-help:
-	@echo "Blog Application - Available Commands"
-	@echo "======================================"
-	@echo ""
-	@echo "Development:"
-	@echo "  make dev          - Start development environment"
-	@echo "  make dev-down     - Stop development environment"
-	@echo "  make dev-logs     - View development logs"
-	@echo ""
-	@echo "Production:"
-	@echo "  make build        - Build all Docker images"
-	@echo "  make up           - Start production environment"
-	@echo "  make down         - Stop production environment"
-	@echo "  make restart      - Restart all services"
-	@echo "  make logs         - View logs (all services)"
-	@echo "  make logs-backend - View backend logs"
-	@echo "  make logs-frontend- View frontend logs"
-	@echo "  make logs-db      - View database logs"
-	@echo ""
-	@echo "Maintenance:"
-	@echo "  make clean        - Remove containers and images"
-	@echo "  make clean-all    - Remove everything including volumes"
-	@echo "  make backup       - Backup database"
-	@echo "  make restore      - Restore database from backup"
-	@echo "  make shell-db     - Access database shell"
-	@echo "  make shell-backend- Access backend shell"
-	@echo ""
-	@echo "Deployment:"
-	@echo "  make deploy       - Full deployment (pull, build, up)"
-	@echo "  make update       - Update and restart services"
+help: ## Show this help
+	@awk 'BEGIN {FS = ":.*## "} /^[a-z-]+:.*## / {printf "  %-18s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
-# ----------------------------------------
-# Development Commands
-# ----------------------------------------
-dev:
-	docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+volumes:
+	@for v in $(VOLUMES); do docker volume inspect $$v >/dev/null 2>&1 || docker volume create $$v >/dev/null; done
 
-dev-down:
-	docker compose -f docker-compose.yml -f docker-compose.dev.yml down
+up: volumes ## Build the images and start the stack, waiting until it is healthy
+	$(COMPOSE) up -d --build --wait
 
-dev-logs:
-	docker compose -f docker-compose.yml -f docker-compose.dev.yml logs -f
+down: ## Stop the stack (data volumes are kept)
+	$(COMPOSE) down
 
-# ----------------------------------------
-# Production Commands
-# ----------------------------------------
-build:
-	docker compose -f docker-compose.yml -f docker-compose.prod.yml build
+restart: ## Restart the application containers
+	$(COMPOSE) restart backend frontend
 
-up:
-	docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+build: ## Build the images without starting them
+	$(COMPOSE) build
 
-down:
-	docker compose -f docker-compose.yml -f docker-compose.prod.yml down
+logs: ## Follow the logs; narrow down with: make logs SERVICE=backend
+	$(COMPOSE) logs -f --tail=100 $(SERVICE)
 
-restart:
-	docker compose -f docker-compose.yml -f docker-compose.prod.yml restart
+ps: ## Show container status and health
+	$(COMPOSE) ps
 
-logs:
-	docker compose -f docker-compose.yml -f docker-compose.prod.yml logs -f
+admin-user: ## Create an admin or reset its password: make admin-user USERNAME=name
+	@test -n "$(USERNAME)" || { echo "usage: make admin-user USERNAME=name"; exit 1; }
+	$(EXEC) backend admin-user -username '$(USERNAME)'
 
-logs-backend:
-	docker compose -f docker-compose.yml -f docker-compose.prod.yml logs -f backend
+db-psql: ## Open psql, or run SQL from stdin: make db-psql < file.sql
+	$(EXEC) db sh -c 'psql -v ON_ERROR_STOP=1 -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"'
 
-logs-frontend:
-	docker compose -f docker-compose.yml -f docker-compose.prod.yml logs -f frontend
+db-backup: ## Dump the database to BACKUP_DIR (~/backups/blog)
+	umask 077 && mkdir -p $(BACKUP_DIR) && \
+		$(COMPOSE) exec -T db sh -c 'pg_dump -U "$$POSTGRES_USER" -d "$$POSTGRES_DB" -Fc' \
+		> $(BACKUP_DIR)/blog-$$(date +%Y%m%d-%H%M%S).dump
+	@ls -lh $(BACKUP_DIR) | tail -n 3
 
-logs-db:
-	docker compose -f docker-compose.yml -f docker-compose.prod.yml logs -f database
+uploads-backup: ## Archive the uploaded images to BACKUP_DIR
+	umask 077 && mkdir -p $(BACKUP_DIR) && \
+		docker run --rm -v blog-uploads:/data:ro alpine tar -C /data -czf - . \
+		> $(BACKUP_DIR)/uploads-$$(date +%Y%m%d-%H%M%S).tar.gz
+	@ls -lh $(BACKUP_DIR) | tail -n 3
 
-# ----------------------------------------
-# Maintenance Commands
-# ----------------------------------------
-clean:
-	docker compose -f docker-compose.yml -f docker-compose.prod.yml down --rmi local
-	docker image prune -f
+backup: db-backup uploads-backup ## Back up the database and the uploaded images
 
-clean-all:
-	docker compose -f docker-compose.yml -f docker-compose.prod.yml down --rmi all --volumes
-	docker system prune -af
+test: ## Run unit tests and linters
+	cd backend && go vet ./... && go test -race ./...
+	cd frontend && npm run lint && npx tsc --noEmit
 
-shell-db:
-	docker compose exec database psql -U $${DB_USER:-dervis} -d $${DB_NAME:-website}
+test-integration: ## Run all backend tests against a throwaway PostgreSQL
+	docker run -d --rm --name $(TEST_DB_NAME) -e POSTGRES_PASSWORD=test \
+		-p 127.0.0.1:55433:5432 postgres:18-trixie >/dev/null
+	until docker exec $(TEST_DB_NAME) pg_isready -h 127.0.0.1 -q; do sleep 1; done
+	cd backend && TEST_DATABASE_URL='$(TEST_DB_URL)' go test -race -count=1 ./...; \
+		status=$$?; docker rm -fv $(TEST_DB_NAME) >/dev/null; exit $$status
 
-shell-backend:
-	docker compose exec backend sh
+dev-db: ## Start a development PostgreSQL on 127.0.0.1:55432
+	@for v in blog-dev-postgres blog-dev-uploads; do docker volume inspect $$v >/dev/null 2>&1 || docker volume create $$v >/dev/null; done
+	$(DEV_COMPOSE) up -d --wait db
 
-# ----------------------------------------
-# Backup Commands
-# ----------------------------------------
-BACKUP_DIR := ./backups
-BACKUP_FILE := $(BACKUP_DIR)/backup_$(shell date +%Y%m%d_%H%M%S).sql
+dev-db-down: ## Stop the development PostgreSQL
+	$(DEV_COMPOSE) down
 
-backup:
-	@mkdir -p $(BACKUP_DIR)
-	docker compose exec -T database pg_dump -U $${DB_USER:-dervis} $${DB_NAME:-website} > $(BACKUP_FILE)
-	@echo "Backup saved to: $(BACKUP_FILE)"
+about: ## Build the static about site into about/out/
+	cd about && npm ci --no-audit --no-fund && npm run build
 
-restore:
-	@if [ -z "$(FILE)" ]; then \
-		echo "Usage: make restore FILE=./backups/backup_file.sql"; \
-		exit 1; \
-	fi
-	docker compose exec -T database psql -U $${DB_USER:-dervis} $${DB_NAME:-website} < $(FILE)
-	@echo "Database restored from: $(FILE)"
-
-# ----------------------------------------
-# Deployment Commands
-# ----------------------------------------
-deploy: 
-	@echo "🚀 Starting deployment..."
-	git pull origin main
-	$(MAKE) build
-	$(MAKE) up
-	@echo "✅ Deployment complete!"
-
-update:
-	@echo "🔄 Updating services..."
-	git pull origin main
-	docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
-	@echo "✅ Update complete!"
-
-# ----------------------------------------
-# Health Check
-# ----------------------------------------
-health:
-	@echo "Checking service health..."
-	@docker compose ps
-	@echo ""
-	@echo "Backend health:"
-	@curl -sf http://localhost:8080/api/health || echo "Backend not responding"
-	@echo ""
-	@echo "Frontend health:"
-	@curl -sf http://localhost:3000 > /dev/null && echo "OK" || echo "Frontend not responding"
+deploy-about: about ## Publish the about site to ABOUT_ROOT
+	rsync -rlpt --delete --chmod=D755,F644 about/out/ $(ABOUT_ROOT)/
