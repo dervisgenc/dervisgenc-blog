@@ -21,8 +21,7 @@ export function absoluteUrl(path: string): string {
 export const site = {
   title: "Derviş Genç",
   subtitle: "Blog",
-  description:
-    "Notes on Linux, networking, Go, security and the systems I build and run — by Derviş Genç.",
+  description: "Notes on the systems and technologies I work with, build and explore.",
   author: "Derviş Genç",
   aboutUrl: "https://dervisgenc.com",
   social: {

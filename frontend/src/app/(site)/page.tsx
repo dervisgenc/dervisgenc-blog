@@ -68,11 +68,8 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
   return (
     <div className="space-y-14">
       {!filtered && page === 1 && (
-        <section className="max-w-2xl space-y-3">
-          <h1 className="text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
-            Notes from the network, the kernel and everything in between.
-          </h1>
-          <p className="leading-relaxed text-zinc-600 dark:text-zinc-400">{site.description}</p>
+        <section className="max-w-2xl">
+          <h1 className="text-2xl font-semibold tracking-tight text-balance sm:text-3xl">{site.description}</h1>
         </section>
       )}
 
