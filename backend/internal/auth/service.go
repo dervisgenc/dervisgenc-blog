@@ -1,86 +1,58 @@
 package auth
 
 import (
+	"context"
 	"errors"
-	"time"
+	"fmt"
 
-	"github.com/golang-jwt/jwt"
 	"golang.org/x/crypto/bcrypt"
+	"gorm.io/gorm"
 )
 
-type LoginService struct {
-	userRepo  UserRepository
-	jwtSecret []byte
+var ErrInvalidCredentials = errors.New("invalid username or password")
+
+// dummyHash is compared against when the username does not exist, so a
+// login attempt takes the same time whether or not the user exists.
+var dummyHash, _ = bcrypt.GenerateFromPassword([]byte("dummy-password"), bcrypt.DefaultCost)
+
+// Service authenticates admins against the database.
+type Service struct {
+	db     *gorm.DB
+	tokens *TokenManager
 }
 
-func NewLoginService(userRepo UserRepository, jwtSecret []byte) *LoginService {
-	return &LoginService{userRepo: userRepo, jwtSecret: jwtSecret}
+func NewService(db *gorm.DB, tokens *TokenManager) *Service {
+	return &Service{db: db, tokens: tokens}
 }
 
-// Represents the claims of the JWT token
-type Claims struct {
-	Username string `json:"username"`
-	jwt.StandardClaims
-}
-
-func (s *LoginService) AuthenticateAdmin(username, password string) (string, error) {
-
-	user, err := s.userRepo.FindByUsername(username)
-	if err != nil || !CheckPasswordHash(password, user.PasswordHash) {
-		return "", errors.New("invalid username or password")
+// Login verifies the credentials and returns a session token.
+func (s *Service) Login(ctx context.Context, username, password string) (string, Claims, error) {
+	var admin Admin
+	err := s.db.WithContext(ctx).Where(&Admin{Username: username}).First(&admin).Error
+	switch {
+	case errors.Is(err, gorm.ErrRecordNotFound):
+		_ = bcrypt.CompareHashAndPassword(dummyHash, []byte(password))
+		return "", Claims{}, ErrInvalidCredentials
+	case err != nil:
+		return "", Claims{}, fmt.Errorf("find admin: %w", err)
 	}
 
-	token, err := s.generateJWT(username)
+	if bcrypt.CompareHashAndPassword([]byte(admin.PasswordHash), []byte(password)) != nil {
+		return "", Claims{}, ErrInvalidCredentials
+	}
+	return s.tokens.Issue(admin.Username)
+}
+
+// SetPassword creates the admin or replaces its password.
+func (s *Service) SetPassword(ctx context.Context, username, password string) error {
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
-		return "", err
+		return fmt.Errorf("hash password: %w", err)
 	}
 
-	return token, nil
-}
-
-// Generates a JWT token
-func (s *LoginService) generateJWT(username string) (string, error) {
-	expirataionTime := time.Now().Add(6 * time.Hour)
-	claims := &Claims{
-		Username: username,
-		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: expirataionTime.Unix(),
-		},
-	}
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-
-	tokenString, err := token.SignedString(s.jwtSecret)
-	if err != nil {
-		return "", err
-	}
-	return tokenString, nil
-}
-
-func ValidateToken(tokenString string, jwtSecret []byte) (*Claims, error) {
-	claims := &Claims{}
-
-	token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
-		return jwtSecret, nil
-	})
-
-	if err != nil || !token.Valid {
-		return nil, errors.New("invalid token")
-	}
-
-	return claims, nil
-}
-
-// Hashes the password
-func HashPassword(password string) (string, error) {
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-	if err != nil {
-		return "", err
-	}
-	return string(hashedPassword), nil
-}
-
-// Checks if the password is same as the hashed password
-func CheckPasswordHash(password, hash string) bool {
-	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
-	return err == nil
+	admin := Admin{Username: username}
+	return s.db.WithContext(ctx).
+		Where(Admin{Username: username}).
+		Assign(Admin{PasswordHash: string(hash)}).
+		FirstOrCreate(&admin).Error
 }

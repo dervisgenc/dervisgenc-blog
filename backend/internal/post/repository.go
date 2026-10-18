@@ -1,358 +1,273 @@
 package post
 
 import (
+	"context"
 	"errors"
 	"fmt"
-	"net/http"
-	"strings" // Import strings package
+	"strings"
 
-	myerr "github.com/dervisgenc/dervisgenc-blog/backend/pkg"
-	"github.com/dervisgenc/dervisgenc-blog/backend/pkg/models"
-	"github.com/sirupsen/logrus"
+	"github.com/dervisgenc/dervisgenc-blog/backend/internal/httpx"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
-// Define a sentinel error for post not found
-var ErrPostNotFound = errors.New("post not found")
+var (
+	ErrNotFound  = errors.New("post not found")
+	ErrSlugTaken = errors.New("slug is already used by another post")
+)
 
-type PostRepository interface {
-	FindAll() ([]*models.Post, error)
-	FindByID(id uint) (*models.Post, error)
-	Create(post *models.Post) error
-	Update(post *models.Post) error
-	Delete(post_id uint) error
-	FindAllAdmin() ([]*models.Post, error)
-	FindByIDAdmin(id uint) (*models.Post, error)
-	FindPaginated(page, pageSize int) ([]*models.Post, int64, error)
-	SearchPosts(query string, page, pageSize int) ([]*models.Post, int64, error)
-	DeletePostPermanently(id uint) error                        // Add this line
-	FindRelated(postID uint, limit int) ([]*models.Post, error) // Add this line for related posts
+// editableColumns are the columns an update may change. Counters are left
+// out so an edit never overwrites views or likes recorded meanwhile.
+var editableColumns = []string{
+	"Slug", "Title", "Summary", "Content", "CoverImageURL",
+	"Status", "PublishedAt", "ReadingMinutes", "UpdatedAt",
 }
 
-type postRepository struct {
-	db     *gorm.DB
-	logger *logrus.Logger // Add logger field
+// Filter narrows a post listing.
+type Filter struct {
+	Status Status // empty means any status
+	Query  string // matched against title, summary and content
+	Tag    string
 }
 
-// Modify NewPostRepository to accept and store the logger
-func NewPostRepository(db *gorm.DB, logger *logrus.Logger) PostRepository {
-	return &postRepository{db: db, logger: logger}
+// Repository stores posts in PostgreSQL.
+type Repository struct {
+	db *gorm.DB
 }
 
-func (r *postRepository) Create(post *models.Post) error {
-	result := r.db.Create(post)
-	if result.Error != nil {
-		return fmt.Errorf("failed to create post: %w", result.Error)
-	}
-	return nil
+func NewRepository(db *gorm.DB) *Repository {
+	return &Repository{db: db}
 }
 
-func (r *postRepository) Update(post *models.Post) error {
-	// Use Select to specify which fields to update, including new ones
-	result := r.db.Model(post).Select(
-		"title", "content", "summary", "image_path", "image_url",
-		"read_time", "is_active", "updated_at", "category", "tags", // Added category and tags
-	).Updates(post)
-
-	if result.Error != nil {
-		r.logger.WithError(result.Error).Errorf("Error updating post with ID %d", post.ID)
-		return fmt.Errorf("error while updating post: %w", result.Error)
-	}
-	if result.RowsAffected == 0 {
-		// Optionally check if the record exists to differentiate between not found and no changes
-		var exists int64
-		r.db.Model(&models.Post{}).Where("id = ?", post.ID).Count(&exists)
-		if exists == 0 {
-			r.logger.Warnf("Attempted to update non-existent post with ID %d", post.ID)
-			return myerr.WithHTTPStatus(ErrPostNotFound, http.StatusNotFound) // Use the sentinel error
+// Create inserts the post with its tags.
+func (r *Repository) Create(ctx context.Context, p *Post, tags []string) error {
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		var err error
+		if p.Tags, err = ensureTags(tx, tags); err != nil {
+			return err
 		}
-		r.logger.Infof("No changes detected for post with ID %d during update", post.ID)
-	}
-	return nil
-}
-
-func (r *postRepository) Delete(post_id uint) error {
-	// This method performs a GORM soft delete if DeletedAt field exists,
-	// or a hard delete if it doesn't.
-	// It's better to have explicit SoftDelete and DeletePermanently methods.
-	// For now, we assume this is intended for soft delete based on the service logic.
-	// The permanent delete logic is correctly in DeletePostPermanently.
-	result := r.db.Delete(&models.Post{}, post_id)
-	if result.Error != nil {
-		r.logger.WithError(result.Error).Errorf("Error performing delete operation on post ID %d", post_id)
-		return fmt.Errorf("error while deleting post: %w", result.Error)
-	}
-	if result.RowsAffected == 0 {
-		r.logger.Warnf("Attempted to delete non-existent or already deleted post with ID %d", post_id)
-		// Consider returning ErrPostNotFound here as well
-	}
-	return nil
-}
-
-func (r *postRepository) FindByID(id uint) (*models.Post, error) {
-	var post models.Post
-
-	if err := r.db.First(&post, id).Error; err != nil || !post.IsActive {
-		return nil, errors.New("error while fetching post")
-	}
-
-	return &post, nil
-}
-func (r *postRepository) FindByIDAdmin(id uint) (*models.Post, error) {
-	var post models.Post
-	if err := r.db.First(&post, id).Error; err != nil {
-		return nil, errors.New("error while fetching post")
-	}
-	return &post, nil
-}
-
-func (r *postRepository) FindAll() ([]*models.Post, error) {
-	var posts []*models.Post
-	if err := r.db.Where("is_active = ?", "true").Order("created_at desc").Find(&posts).Error; err != nil {
-		return nil, errors.New("error while fetching posts")
-	}
-	return posts, nil
-}
-
-func (r *postRepository) FindAllAdmin() ([]*models.Post, error) {
-	var posts []*models.Post
-	if err := r.db.Order("created_at desc").Find(&posts).Error; err != nil {
-		return nil, errors.New("error while fetching posts")
-	}
-	return posts, nil
-}
-
-func (r *postRepository) FindPaginated(page, pageSize int) ([]*models.Post, int64, error) {
-	var posts []*models.Post
-	var totalPosts int64
-
-	// Count total active posts
-	if err := r.db.Model(&models.Post{}).Where("is_active = ?", true).Count(&totalPosts).Error; err != nil {
-		return nil, 0, fmt.Errorf("error counting posts: %w", err)
-	}
-
-	// Calculate offset
-	offset := (page - 1) * pageSize
-
-	// Get paginated posts
-	if err := r.db.Where("is_active = ?", true).
-		Order("created_at desc").
-		Limit(pageSize).
-		Offset(offset).
-		Find(&posts).Error; err != nil {
-		return nil, 0, fmt.Errorf("error fetching paginated posts: %w", err)
-	}
-
-	return posts, totalPosts, nil
-}
-
-func (r *postRepository) SearchPosts(query string, page, pageSize int) ([]*models.Post, int64, error) {
-	var posts []*models.Post
-	var totalPosts int64
-
-	// Base query for active posts with search conditions
-	searchQuery := r.db.Model(&models.Post{}).
-		Where("is_active = ?", true).
-		Where("title ILIKE ? OR content ILIKE ? OR summary ILIKE ?",
-			"%"+query+"%", "%"+query+"%", "%"+query+"%")
-
-	// Count total matching posts
-	if err := searchQuery.Count(&totalPosts).Error; err != nil {
-		return nil, 0, fmt.Errorf("error counting search results: %w", err)
-	}
-
-	// Calculate offset for pagination
-	offset := (page - 1) * pageSize
-
-	// Get paginated results
-	if err := searchQuery.
-		Order("created_at desc").
-		Limit(pageSize).
-		Offset(offset).
-		Find(&posts).Error; err != nil {
-		return nil, 0, fmt.Errorf("error fetching search results: %w", err)
-	}
-
-	return posts, totalPosts, nil
-}
-
-// FindRelated finds posts related to the given postID based on category and tags.
-func (r *postRepository) FindRelated(postID uint, limit int) ([]*models.Post, error) {
-	var currentPost models.Post
-	// First, get the category and tags of the current post
-	if err := r.db.Select("category", "tags").First(&currentPost, postID).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			r.logger.Warnf("FindRelated: Current post with ID %d not found", postID)
-			return nil, myerr.WithHTTPStatus(fmt.Errorf("current post not found: %w", err), http.StatusNotFound)
-		}
-		r.logger.WithError(err).Errorf("FindRelated: Error fetching current post with ID %d", postID)
-		return nil, myerr.WithHTTPStatus(fmt.Errorf("error fetching current post: %w", err), http.StatusInternalServerError)
-	}
-
-	var relatedPosts []*models.Post
-	query := r.db.Model(&models.Post{}).
-		Select("id", "title", "summary", "image_url", "read_time", "like_count", "is_active", "created_at", "category", "tags"). // Select necessary fields
-		Where("id <> ?", postID).                                                                                                // Exclude the current post
-		Where("is_active = ?", true)
-
-	// Build ORDER BY clause parts using CASE statement for relevance
-	// var orderClauses []string
-	var args []interface{}
-
-	hasCategoryCondition := currentPost.Category != ""
-	hasTagsCondition := currentPost.Tags != ""
-	tags := splitTags(currentPost.Tags) // Use helper function
-
-	// Build CASE statement for ordering
-	caseStatement := "CASE "
-	priority := 1 // Lower number means higher priority
-
-	// Priority 1: Category AND Tags match (requires robust tag matching)
-	if hasCategoryCondition && hasTagsCondition && len(tags) > 0 {
-		// Build tag matching condition (example using simple LIKE, adjust as needed)
-		tagLikes := make([]string, len(tags))
-		tagArgs := make([]interface{}, len(tags))
-		for i, tag := range tags {
-			// Assuming tags are comma-separated, check if the tag exists within the string
-			// This is basic, consider full-text search or array types in Postgres for better performance/accuracy
-			tagLikes[i] = "tags LIKE ?"
-			tagArgs[i] = "%" + tag + "%"
-		}
-		tagCondition := "(" + strings.Join(tagLikes, " OR ") + ")" // Match any tag
-
-		caseStatement += fmt.Sprintf("WHEN category = ? AND %s THEN %d ", tagCondition, priority)
-		args = append(args, currentPost.Category)
-		args = append(args, tagArgs...)
-		priority++
-	}
-
-	// Priority 2: Category Only matches
-	if hasCategoryCondition {
-		caseStatement += fmt.Sprintf("WHEN category = ? THEN %d ", priority)
-		args = append(args, currentPost.Category)
-		priority++
-	}
-
-	// Priority 3: Tags Only match (requires robust tag matching)
-	if hasTagsCondition && len(tags) > 0 {
-		// Reuse tag matching condition from Priority 1 if built
-		tagLikes := make([]string, len(tags))
-		tagArgs := make([]interface{}, len(tags))
-		for i, tag := range tags {
-			tagLikes[i] = "tags LIKE ?"
-			tagArgs[i] = "%" + tag + "%"
-		}
-		tagCondition := "(" + strings.Join(tagLikes, " OR ") + ")"
-
-		caseStatement += fmt.Sprintf("WHEN %s THEN %d ", tagCondition, priority)
-		args = append(args, tagArgs...)
-		priority++
-	}
-
-	// Default priority (lower relevance)
-	caseStatement += fmt.Sprintf("ELSE %d END", priority)
-
-	// Final Order Clause: Order by relevance (CASE statement), then by creation date
-	finalOrderClause := gorm.Expr(caseStatement+", created_at DESC", args...)
-
-	// Log the generated clause and arguments for debugging
-	r.logger.WithFields(logrus.Fields{
-		"case_statement": caseStatement,
-		"arguments":      args,
-	}).Debug("FindRelated: Generated ORDER BY CASE statement")
-
-	// Apply conditions and limit
-	if err := query.Order(finalOrderClause).Limit(limit).Find(&relatedPosts).Error; err != nil {
-		r.logger.WithError(err).Errorf("FindRelated: Error fetching related posts for ID %d", postID)
-		// Wrap the error with a 500 status code
-		return nil, myerr.WithHTTPStatus(fmt.Errorf("error fetching related posts: %w", err), http.StatusInternalServerError)
-	}
-
-	r.logger.Infof("FindRelated: Found %d related posts for ID %d", len(relatedPosts), postID)
-	return relatedPosts, nil
-}
-
-// Helper function to split tags (simple comma split and trim)
-func splitTags(tags string) []string {
-	if tags == "" {
-		return []string{}
-	}
-	split := strings.Split(tags, ",")
-	result := make([]string, 0, len(split))
-	for _, tag := range split {
-		trimmed := strings.TrimSpace(tag)
-		if trimmed != "" {
-			result = append(result, trimmed)
-		}
-	}
-	return result
-}
-
-func (r *postRepository) DeletePostPermanently(id uint) error {
-	log := r.logger.WithField("post_id", id)
-	log.Info("Attempting to permanently delete post")
-
-	// Check if the post exists (unscoped to find soft-deleted posts too)
-	var post models.Post
-	if err := r.db.Unscoped().First(&post, id).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			log.Warn("Post not found for permanent deletion")
-			// Return the wrapped sentinel error
-			return myerr.WithHTTPStatus(ErrPostNotFound, http.StatusNotFound)
-		}
-		log.WithError(err).Error("Error checking post existence for permanent deletion")
-		// Wrap other DB errors
-		return myerr.WithHTTPStatus(fmt.Errorf("error checking post existence: %w", err), http.StatusInternalServerError)
-	}
-
-	// Use transaction to delete related data and the post itself
-	return r.db.Transaction(func(tx *gorm.DB) error {
-		// Delete related likes
-		log.Info("Deleting related post likes")
-		if err := tx.Unscoped().Where("post_id = ?", id).Delete(&models.PostLike{}).Error; err != nil {
-			log.WithError(err).Error("Error deleting post likes")
-			return myerr.WithHTTPStatus(fmt.Errorf("error deleting post likes: %w", err), http.StatusInternalServerError)
-		}
-
-		// Delete related views
-		log.Info("Deleting related post views")
-		if err := tx.Unscoped().Where("post_id = ?", id).Delete(&models.PostView{}).Error; err != nil {
-			log.WithError(err).Error("Error deleting post views")
-			return myerr.WithHTTPStatus(fmt.Errorf("error deleting post views: %w", err), http.StatusInternalServerError)
-		}
-
-		// Delete related shares (ADDED)
-		log.Info("Deleting related post shares")
-		if err := tx.Unscoped().Where("post_id = ?", id).Delete(&models.PostShare{}).Error; err != nil {
-			log.WithError(err).Error("Error deleting post shares")
-			return myerr.WithHTTPStatus(fmt.Errorf("error deleting post shares: %w", err), http.StatusInternalServerError)
-		}
-
-		// Delete related stats
-		log.Info("Deleting related post stats")
-		if err := tx.Unscoped().Where("post_id = ?", id).Delete(&models.Stat{}).Error; err != nil {
-			log.WithError(err).Error("Error deleting post stats")
-			return myerr.WithHTTPStatus(fmt.Errorf("error deleting post stats: %w", err), http.StatusInternalServerError)
-		}
-
-		// Delete related comments
-		log.Info("Deleting related post comments")
-		if err := tx.Unscoped().Where("post_id = ?", id).Delete(&models.Comment{}).Error; err != nil {
-			log.WithError(err).Error("Error deleting post comments")
-			return myerr.WithHTTPStatus(fmt.Errorf("error deleting post comments: %w", err), http.StatusInternalServerError)
-		}
-
-		// Permanently delete the post
-		log.Info("Permanently deleting post record")
-		// Use Unscoped to ensure hard delete even if GORM's default is soft delete
-		if err := tx.Unscoped().Delete(&models.Post{}, id).Error; err != nil {
-			// Log the detailed GORM error HERE
-			log.WithError(err).Error("GORM error during permanent post deletion")
-			// Wrap and return the error
-			return myerr.WithHTTPStatus(fmt.Errorf("error permanently deleting post: %w", err), http.StatusInternalServerError)
-		}
-
-		log.Info("Post permanently deleted successfully")
-		return nil
+		// Omit("Tags.*") links the existing tags without upserting them.
+		return translate(tx.Omit("Tags.*").Create(p).Error)
 	})
+}
+
+// Update saves the editable fields of the post and replaces its tags.
+func (r *Repository) Update(ctx context.Context, p *Post, tags []string) error {
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		res := tx.Model(&Post{ID: p.ID}).Select(editableColumns).Updates(p)
+		if err := translate(res.Error); err != nil {
+			return err
+		}
+		if res.RowsAffected == 0 {
+			return ErrNotFound
+		}
+
+		var err error
+		if p.Tags, err = ensureTags(tx, tags); err != nil {
+			return err
+		}
+		return tx.Model(p).Association("Tags").Replace(p.Tags)
+	})
+}
+
+// Delete removes the post. Its tags links, likes and statistics are removed
+// by the database through ON DELETE CASCADE.
+func (r *Repository) Delete(ctx context.Context, id uint) error {
+	res := r.db.WithContext(ctx).Delete(&Post{}, id)
+	if res.Error != nil {
+		return res.Error
+	}
+	if res.RowsAffected == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
+// FindByID returns the post with its tags, whatever its status.
+func (r *Repository) FindByID(ctx context.Context, id uint) (*Post, error) {
+	var p Post
+	err := r.withTags(ctx).First(&p, id).Error
+	return &p, notFound(err)
+}
+
+// FindPublished returns the published post with the given slug.
+func (r *Repository) FindPublished(ctx context.Context, slug string) (*Post, error) {
+	var p Post
+	err := r.withTags(ctx).Where(&Post{Slug: slug, Status: StatusPublished}).First(&p).Error
+	return &p, notFound(err)
+}
+
+// PublishedID returns the ID of the published post with the given slug.
+func (r *Repository) PublishedID(ctx context.Context, slug string) (uint, error) {
+	var p Post
+	err := r.db.WithContext(ctx).Select("id").Where(&Post{Slug: slug, Status: StatusPublished}).First(&p).Error
+	return p.ID, notFound(err)
+}
+
+// SlugTaken reports whether a post other than excludeID uses slug.
+func (r *Repository) SlugTaken(ctx context.Context, slug string, excludeID uint) (bool, error) {
+	var count int64
+	err := r.db.WithContext(ctx).Model(&Post{}).
+		Where("slug = ? AND id <> ?", slug, excludeID).
+		Count(&count).Error
+	return count > 0, err
+}
+
+// List returns one page of posts matching f, ordered by orderBy.
+func (r *Repository) List(ctx context.Context, f Filter, orderBy string, page httpx.PageRequest) ([]Post, int64, error) {
+	query := r.filtered(ctx, f)
+
+	var total int64
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, fmt.Errorf("count posts: %w", err)
+	}
+
+	var posts []Post
+	err := query.Preload("Tags", orderTags).
+		Order(orderBy).Order("posts.id DESC").
+		Offset(page.Offset()).Limit(page.PageSize).
+		Find(&posts).Error
+	if err != nil {
+		return nil, 0, fmt.Errorf("list posts: %w", err)
+	}
+	return posts, total, nil
+}
+
+// Related returns up to limit published posts sharing the most tags with p,
+// topped up with the latest posts when too few share a tag.
+func (r *Repository) Related(ctx context.Context, p *Post, limit int) ([]Post, error) {
+	db := r.db.WithContext(ctx)
+
+	var ids []uint
+	err := db.Table("post_tags").
+		Joins("JOIN posts ON posts.id = post_tags.post_id").
+		Where("post_tags.tag_id IN (?)", db.Table("post_tags").Select("tag_id").Where("post_id = ?", p.ID)).
+		Where("posts.id <> ? AND posts.status = ?", p.ID, StatusPublished).
+		Group("post_tags.post_id").
+		Order("COUNT(*) DESC, MAX(posts.published_at) DESC").
+		Limit(limit).
+		Pluck("post_tags.post_id", &ids).Error
+	if err != nil {
+		return nil, fmt.Errorf("find related posts: %w", err)
+	}
+
+	if len(ids) < limit {
+		var latest []uint
+		err := db.Model(&Post{}).
+			Where("status = ? AND id <> ?", StatusPublished, p.ID).
+			Where("id NOT IN (?)", append(ids, 0)).
+			Order("published_at DESC").
+			Limit(limit-len(ids)).
+			Pluck("id", &latest).Error
+		if err != nil {
+			return nil, fmt.Errorf("find latest posts: %w", err)
+		}
+		ids = append(ids, latest...)
+	}
+	if len(ids) == 0 {
+		return []Post{}, nil
+	}
+
+	var posts []Post
+	if err := r.withTags(ctx).Where("id IN ?", ids).Find(&posts).Error; err != nil {
+		return nil, fmt.Errorf("load related posts: %w", err)
+	}
+	return orderByIDs(posts, ids), nil
+}
+
+// TagCounts returns the tags of published posts, most used first.
+func (r *Repository) TagCounts(ctx context.Context) ([]TagCount, error) {
+	counts := []TagCount{}
+	err := r.db.WithContext(ctx).Model(&Tag{}).
+		Select("tags.name AS name, COUNT(*) AS count").
+		Joins("JOIN post_tags ON post_tags.tag_id = tags.id").
+		Joins("JOIN posts ON posts.id = post_tags.post_id").
+		Where("posts.status = ?", StatusPublished).
+		Group("tags.name").
+		Order("count DESC, name").
+		Scan(&counts).Error
+	return counts, err
+}
+
+func (r *Repository) withTags(ctx context.Context) *gorm.DB {
+	return r.db.WithContext(ctx).Preload("Tags", orderTags)
+}
+
+func (r *Repository) filtered(ctx context.Context, f Filter) *gorm.DB {
+	db := r.db.WithContext(ctx)
+	query := db.Model(&Post{})
+	if f.Status != "" {
+		query = query.Where("posts.status = ?", f.Status)
+	}
+	if f.Query != "" {
+		pattern := "%" + escapeLike(f.Query) + "%"
+		query = query.Where(db.Where("posts.title ILIKE ?", pattern).
+			Or("posts.summary ILIKE ?", pattern).
+			Or("posts.content ILIKE ?", pattern))
+	}
+	if f.Tag != "" {
+		query = query.Where("posts.id IN (?)", db.Table("post_tags").
+			Select("post_tags.post_id").
+			Joins("JOIN tags ON tags.id = post_tags.tag_id").
+			Where("tags.name = ?", f.Tag))
+	}
+	return query
+}
+
+// ensureTags returns the tags with the given names, creating missing ones.
+func ensureTags(tx *gorm.DB, names []string) ([]Tag, error) {
+	if len(names) == 0 {
+		return []Tag{}, nil
+	}
+	rows := make([]Tag, len(names))
+	for i, name := range names {
+		rows[i] = Tag{Name: name}
+	}
+	if err := tx.Clauses(clause.OnConflict{DoNothing: true}).Create(&rows).Error; err != nil {
+		return nil, fmt.Errorf("create tags: %w", err)
+	}
+
+	var tags []Tag
+	if err := tx.Where("name IN ?", names).Find(&tags).Error; err != nil {
+		return nil, fmt.Errorf("load tags: %w", err)
+	}
+	return tags, nil
+}
+
+func orderTags(db *gorm.DB) *gorm.DB {
+	return db.Order("tags.name")
+}
+
+func orderByIDs(posts []Post, ids []uint) []Post {
+	byID := make(map[uint]Post, len(posts))
+	for _, p := range posts {
+		byID[p.ID] = p
+	}
+	ordered := make([]Post, 0, len(posts))
+	for _, id := range ids {
+		if p, ok := byID[id]; ok {
+			ordered = append(ordered, p)
+		}
+	}
+	return ordered
+}
+
+// escapeLike escapes the LIKE wildcards in s; PostgreSQL's default escape
+// character is the backslash.
+func escapeLike(s string) string {
+	return strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`).Replace(s)
+}
+
+func notFound(err error) error {
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return ErrNotFound
+	}
+	return err
+}
+
+func translate(err error) error {
+	if errors.Is(err, gorm.ErrDuplicatedKey) {
+		return ErrSlugTaken
+	}
+	return err
 }

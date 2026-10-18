@@ -1,41 +1,6 @@
-# Git
-.git
-.gitignore
-
-# IDE
-.vscode
-.idea
-*.swp
-*.swo
-
-# Build artifacts
-*.exe
-*.exe~
-*.dll
-*.so
-*.dylib
-blog
-
-# Test files
-*_test.go
-*.test
-
-# Documentation
-*.md
-docs/
-
-# Local environment
 .env
-.env.local
-.env*.local
-
-# Logs
-*.log
-logs/
-
-# Uploads (handled by volumes)
-uploads/
-
-# Misc
-.DS_Store
-Thumbs.db
+*.env
+data/
+*_test.go
+Dockerfile
+.dockerignore

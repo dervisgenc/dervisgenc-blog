@@ -1,56 +1,24 @@
-# ============================================
-# Backend Dockerfile - Multi-stage build
-# ============================================
 
-# Stage 1: Build
-FROM golang:1.23-alpine AS builder
-
-# Build dependencies
-RUN apk add --no-cache git ca-certificates tzdata
-
-WORKDIR /app
-
-# Cache dependencies
-COPY go.mod go.sum* ./
+FROM golang:1.26-alpine AS build
+WORKDIR /src
+COPY go.mod go.sum ./
 RUN go mod download
-
-# Copy source code
 COPY . .
+ENV CGO_ENABLED=0
+RUN go build -trimpath -ldflags="-s -w" -o /out/blog ./cmd/blog \
+ && go build -trimpath -ldflags="-s -w" -o /out/admin-user ./cmd/admin-user \
+ && mkdir -p /out/data/uploads
 
-# Build the binary
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
-    -ldflags="-w -s" \
-    -o /app/blog \
-    ./cmd/website
-
-# Stage 2: Runtime
-FROM alpine:3.19
-
-# Install runtime dependencies
-RUN apk add --no-cache ca-certificates tzdata
-
-# Create non-root user for security
-RUN addgroup -g 1000 -S appgroup && \
-    adduser -u 1000 -S appuser -G appgroup
-
-WORKDIR /app
-
-# Copy binary from builder
-COPY --from=builder /app/blog .
-
-# Create directories for uploads and logs
-RUN mkdir -p /app/uploads/images /app/logs && \
-    chown -R appuser:appgroup /app
-
-# Switch to non-root user
-USER appuser
-
-# Expose port
+# distroless/static has no shell or package manager, and runs as an
+# unprivileged user (uid 65532).
+FROM gcr.io/distroless/static-debian13:nonroot
+COPY --from=build /out/blog /out/admin-user /usr/local/bin/
+# A new named volume mounted at /data/uploads copies this directory,
+# including its ownership, so the server can write to it.
+COPY --from=build --chown=65532:65532 /out/data /data
+ENV HTTP_ADDR=:8080 \
+    UPLOAD_DIR=/data/uploads
 EXPOSE 8080
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD wget --no-verbose --tries=1 --spider http://localhost:8080/api/health || exit 1
-
-# Run the application
-CMD ["./blog"]
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
+    CMD ["/usr/local/bin/blog", "healthcheck"]
+ENTRYPOINT ["/usr/local/bin/blog"]
