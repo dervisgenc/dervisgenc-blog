@@ -1,0 +1,156 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, monospace;
+}
+
+@layer base {
+  html {
+    color-scheme: light;
+    scroll-padding-top: 5rem;
+    --tooltip-bg: #ffffff;
+    --tooltip-fg: #18181b;
+  }
+
+  html.dark {
+    color-scheme: dark;
+    --tooltip-bg: #18181b;
+    --tooltip-fg: #f4f4f5;
+  }
+
+  body {
+    @apply bg-white text-zinc-900 antialiased dark:bg-zinc-950 dark:text-zinc-100;
+  }
+
+  ::selection {
+    @apply bg-teal-200 text-zinc-900 dark:bg-teal-500/40 dark:text-white;
+  }
+
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-teal-500;
+  }
+}
+
+/* Article typography (complements the prose classes in Markdown) ---------- */
+
+.prose-article :not(pre) > code {
+  @apply rounded-md bg-zinc-100 px-1.5 py-0.5 text-[0.875em] text-zinc-800 dark:bg-zinc-800/80 dark:text-zinc-200;
+}
+
+.prose-article blockquote p::before,
+.prose-article blockquote p::after {
+  content: none;
+}
+
+.prose-article table {
+  @apply block overflow-x-auto;
+}
+
+.heading-anchor {
+  @apply no-underline;
+}
+
+/* Syntax highlighting (highlight.js classes) ------------------------------ */
+
+.hljs {
+  color: #24292f;
+}
+.hljs-comment,
+.hljs-quote {
+  color: #6e7781;
+  font-style: italic;
+}
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-type,
+.hljs-doctag {
+  color: #cf222e;
+}
+.hljs-string,
+.hljs-regexp,
+.hljs-addition,
+.hljs-meta .hljs-string {
+  color: #0a3069;
+}
+.hljs-number,
+.hljs-literal,
+.hljs-variable,
+.hljs-template-variable,
+.hljs-attr,
+.hljs-attribute {
+  color: #0550ae;
+}
+.hljs-title,
+.hljs-title.function_,
+.hljs-section,
+.hljs-name {
+  color: #8250df;
+}
+.hljs-built_in,
+.hljs-symbol,
+.hljs-bullet,
+.hljs-link {
+  color: #953800;
+}
+.hljs-meta {
+  color: #116329;
+}
+.hljs-deletion {
+  color: #82071e;
+}
+.hljs-emphasis {
+  font-style: italic;
+}
+.hljs-strong {
+  font-weight: 600;
+}
+
+.dark .hljs {
+  color: #e6edf3;
+}
+.dark .hljs-comment,
+.dark .hljs-quote {
+  color: #8b949e;
+}
+.dark .hljs-keyword,
+.dark .hljs-selector-tag,
+.dark .hljs-type,
+.dark .hljs-doctag {
+  color: #ff7b72;
+}
+.dark .hljs-string,
+.dark .hljs-regexp,
+.dark .hljs-addition,
+.dark .hljs-meta .hljs-string {
+  color: #a5d6ff;
+}
+.dark .hljs-number,
+.dark .hljs-literal,
+.dark .hljs-variable,
+.dark .hljs-template-variable,
+.dark .hljs-attr,
+.dark .hljs-attribute {
+  color: #79c0ff;
+}
+.dark .hljs-title,
+.dark .hljs-title.function_,
+.dark .hljs-section,
+.dark .hljs-name {
+  color: #d2a8ff;
+}
+.dark .hljs-built_in,
+.dark .hljs-symbol,
+.dark .hljs-bullet,
+.dark .hljs-link {
+  color: #ffa657;
+}
+.dark .hljs-meta {
+  color: #7ee787;
+}
+.dark .hljs-deletion {
+  color: #ffdcd7;
+}
