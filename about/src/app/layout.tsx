@@ -9,11 +9,11 @@ export const metadata: Metadata = {
   // Add metadataBase for resolving social media image URLs
   metadataBase: new URL("https://dervisgenc.com"),
   title: {
-    default: "Derviş Genç | Computer Engineering Student",
+    default: "Derviş Genç | DevOps & Network Engineer",
     template: "%s – Derviş Genç",
   },
   description:
-    "Personal portfolio, projects and blog of Derviş Genç – Computer Engineering student at Istanbul Technical University.",
+    "Personal portfolio, projects and blog of Derviş Genç – DevOps & Network Engineer and Istanbul Technical University Computer Engineering graduate.",
   keywords: [
     "Derviş Genç",
     "Dervis Genc",
@@ -22,15 +22,19 @@ export const metadata: Metadata = {
     "Siber Güvenlik",
     "Cybersecurity",
     "Go developer",
+    "Network Engineer",
+    "DevOps Engineer",
+    "Linux",
+    "DevOps",
   ],
   authors: [{ name: "Derviş Genç", url: "https://dervisgenc.com" }],
   openGraph: {
     type: "website",
     url: "https://dervisgenc.com",
-    title: "Derviş Genç | Computer Engineering Student",
+    title: "Derviş Genç | DevOps & Network Engineer",
     description:
-      "Portfolio and projects of Derviş Genç, focusing on Go, C/C++, cybersecurity and ROS 2.",
-    images: [{ url: "/portre.jpg", width: 800, height: 800, alt: "Derviş Genç" }],
+      "Portfolio and projects of Derviş Genç, focusing on Linux, networking, Go, C/C++ and cybersecurity.",
+    images: [{ url: "/portre.png", alt: "Derviş Genç" }],
     locale: "en_US",
     alternateLocale: ["tr_TR"],
   },

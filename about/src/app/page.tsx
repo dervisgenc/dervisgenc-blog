@@ -12,7 +12,7 @@ export const metadata = {
   // Başlıkta her iki ismi ve sayfanın amacını belirt
   title: "Derviş Genç",
   // Açıklamada yine her iki ismi ve sayfadaki anahtar bilgileri kullan
-  description: "Personal bio, projects, skills, and work experience of Dervis Genc (Derviş Genç), a Computer Engineering student at  Istanbul Technical University. Specializing in Cybersecurity, Go, C++, Linux.",
+  description: "Personal bio, projects, skills, and work experience of Dervis Genc (Derviş Genç), a DevOps & Network Engineer and Istanbul Technical University Computer Engineering graduate working with Linux, networking, Docker, Go, and cybersecurity.",
   // Bu sayfa için alternatif canonical URL (genelde kendisi olur)
   alternates: {
     canonical: 'https://dervisgenc.com', // Kendi domain'ini ve bu sayfanın yolunu yaz
@@ -27,17 +27,17 @@ function addPersonJsonLd() {
     "name": "Derviş Genç",
     "alternateName": "Dervis Genc", // Alternatif isim
     "url": "https://dervisgenc.com", // Ana sayfa URL'si
-    "image": "https://dervisgenc.com/portre.jpg", // Profil resmi URL'si
+    "image": "https://dervisgenc.com/portre.png", // Profil resmi URL'si
     "sameAs": [ // Sosyal medya ve diğer profiller
       "https://github.com/dervisgenc",
       "https://www.linkedin.com/in/dervisgenc/",
       "https://www.instagram.com/dervis_genc/",
       "https://x.com/1sabredendervis"
     ],
-    "jobTitle": "Computer Engineering Student",
+    "jobTitle": "DevOps & Network Engineer",
     "worksFor": {
       "@type": "Organization",
-      "name": "Istanbul Technical University"
+      "name": "Bull Technology"
     },
     "alumniOf": {
       "@type": "CollegeOrUniversity",
@@ -88,19 +88,21 @@ export default function AboutPage() {
                 <h1 className="text-4xl md:text-5xl font-bold mb-2 animate-gradient-text bg-gradient-to-r from-cyan-500 via-blue-500 to-pink-500 bg-clip-text text-transparent text-center md:text-left">
                   Derviş Genç
                 </h1>
-                <p className="text-lg text-skin-muted text-center md:text-left">Computer Engineering Student</p>
+                <p className="text-lg text-skin-muted text-center md:text-left">DevOps &amp; Network Engineer</p>
               </div>
 
               {/* Tanıtım + Yetenekler ---------------------------------- */}
               <div className="md:col-span-2 space-y-6">
                 <p className="text-lg md:text-xl leading-relaxed text-skin-base">
-                  Senior Computer Engineering student at Istanbul Technical University with expertise in C/C++ and Go,
-                  and a growing interest in Python, React, and C#. Passionate about cybersecurity, software development,
-                  and Linux systems, with a focus on network/web security and malware analysis.
+                  Computer Engineering graduate from Istanbul Technical University, working as a Network and Systems
+                  Engineer on Linux-based production infrastructure for high-frequency trading systems. I troubleshoot
+                  across the network, operating system, container, and application layers, and build tooling in Go,
+                  Python, and Bash. My background is in cybersecurity, and I enjoy systems programming, C++, and
+                  performance-sensitive software.
                 </p>
 
                 <div className="flex flex-wrap gap-3">
-                  {["C/C++", "Go", "Python", "React", "Linux", "Cybersecurity", "ROS2"].map((skill) => (
+                  {["Linux", "Networking", "Go", "C/C++", "Python", "Docker", "CI/CD", "PostgreSQL", "AWS", "Cybersecurity"].map((skill) => (
                     <SkillBadge key={skill}>{skill}</SkillBadge>
                   ))}
                 </div>
@@ -197,16 +199,28 @@ export default function AboutPage() {
             <CVSection title="Work Experience">
               <div className="space-y-8 relative pl-11 border-l-2 border-border">
                 <ExperienceItem
-                  title="Cybersecurity Part-Time Working Student"
+                  title="Network and Systems Engineer"
+                  company="Bull Technology"
+                  period="Sep 2025 – Present"
+                  description="Operate and troubleshoot Linux infrastructure for high-frequency trading systems: BGP, VLANs, IPsec VPNs, multicast, firewalling, hybrid AWS connectivity, and kernel/CPU tuning for latency-sensitive workloads. Work with software teams on Docker, GitLab CI, Jenkins, and RPM packaging, investigate production incidents with packet captures, logs, and metrics, and build diagnostic tools in Go, Python, and Bash, including a Go utility that validates exchange multicast market-data flows."
+                />
+                <ExperienceItem
+                  title="Network Security Intern – Academy Program"
+                  company="Cyberwise"
+                  period="Summer 2025"
+                  description="Hands-on training in vulnerability assessment, ethical hacking, Linux/Windows hardening, enterprise networking, and network security testing."
+                />
+                <ExperienceItem
+                  title="Cybersecurity Working Student"
                   company="Siemens Advanta"
-                  period="Jan 2024 – Present"
-                  description="Contributed to risk and vulnerability management, incident management, and developed security policies in Information Security. Gained hands-on experience in SDL processes."
+                  period="Feb 2024 – Jul 2025"
+                  description="Contributed to Information Security and Product Solution Security processes, including asset management, vulnerability management, risk assessment, and security policies. Supported Secure Development Lifecycle activities and remediation with international engineering teams."
                 />
                 <ExperienceItem
                   title="Freelance Web Developer"
                   company="Vision Base"
                   period="Oct 2024 – Nov 2024"
-                  description="Developed an interactive corporate website using React, featuring video integration and user-focused design."
+                  description="Built and delivered a responsive React corporate website and the initial Java backend structure with a basic login mechanism."
                 />
               </div>
             </CVSection>
@@ -216,24 +230,29 @@ export default function AboutPage() {
               <div className="space-y-6">
                 <ProjectItem
                   title="BeeHub"
-                  description="Cross-platform desktop app for ITU students, featuring a React/TypeScript UI and Go-based backend."
-                  link="https://github.com/ITU-BeeHub"
+                  description="Open-source cross-platform app used by more than 2,000 ITU students, co-developed in a two-person team. Built the Go/Gin backend, REST APIs, and PostgreSQL persistence behind a React, TypeScript, and Electron client."
+                  link="https://beehubapp.com"
                 />
                 <ProjectItem
-                  title="Cd Burner App"
-                  description="A Windows app in C++ for secure data burning on optical media."
+                  title="Self-Hosted Blog Platform"
+                  description="Go, Gin, GORM, and PostgreSQL backend with a Next.js frontend, containerized with Docker and running on my own Linux server behind Nginx."
+                  link="https://blog.dervisgenc.com"
+                  text="Visit Blog"
+                />
+                <ProjectItem
+                  title="Fileless Malware Analysis Pipeline"
+                  description="B.Sc. capstone project: a Python pipeline around CAPE Sandbox that executes malware samples and extracts behavioral data, used to process more than 20,000 samples for machine-learning-based classification."
+                  link="https://github.com/dervisgenc/CAPEv2"
+                />
+                <ProjectItem
+                  title="Chess Engine"
+                  description="A chess engine written from scratch in C++ with 64-bit bitboards, FEN parsing, attack tables, and move generation including castling, promotions, and en passant."
+                  link="https://github.com/dervisgenc/chess-engine"
+                />
+                <ProjectItem
+                  title="CdBurner"
+                  description="Native Windows application in C++/MFC that burns AES-encrypted data to optical media using IMAPI, COM interfaces, and background worker threads."
                   link="https://github.com/dervisgenc/CdBurner"
-                />
-                <ProjectItem
-                  title="Fileless Malware Analysis with AI"
-                  description="Bachelor's capstone project focused on detecting fileless malware using ML techniques."
-                  link="#"
-                  text="In Progress"
-                />
-                <ProjectItem
-                  title="Personal Blog App"
-                  description="A full-stack application for managing and sharing blog posts. Built with React, TypeScript, Go, and PostgreSQL."
-                  link="https://dervisgenc.com"
                 />
               </div>
             </CVSection>
@@ -244,13 +263,14 @@ export default function AboutPage() {
                 <div className="grid sm:grid-cols-2 gap-8">
                   <div>
                     <h4 className="text-xl font-semibold">Computer Engineering</h4>
-                    <p className="text-skin-muted">Istanbul Technical University (2020 – 2025)</p>
+                    <p className="text-skin-muted">B.Sc., Istanbul Technical University (Sep 2020 – Jul 2025)</p>
+                    <p className="text-skin-base mt-4">Former Vice President, ITU Cyber Security Club</p>
+                    <p className="text-skin-muted mt-1">Turkish (native), English (professional working proficiency)</p>
                   </div>
                   <div>
                     <h4 className="text-lg font-semibold mb-2">Certificates:</h4>
                     <ul className="list-disc list-inside text-skin-base space-y-1">
-                      <li>CCNAv7: Introduction to Networks</li>
-                      <li>UPM168: Robotics Applications with ROS2 (Mar 2025)</li>
+                      <li>Cisco Certified Network Associate (CCNA)</li>
                     </ul>
                   </div>
                 </div>
